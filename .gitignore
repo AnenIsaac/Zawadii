@@ -1,0 +1,31 @@
+# Dependency directories
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# System files
+.DS_Store
+
+# Log files
+*.log
+
+# Auto-generated Next.js file
+next-env.d.ts
+
+# Optional cache folders (uncomment if used)
+# .turbo/
+# .vercel/
+# dist/
+
+# Ignore folders if they are generated or not in use (uncomment if applicable)
+# TS/
+# W/
