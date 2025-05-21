@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import PageIndicator from "../components/PageIndicator";
+import PageIndicator from "../../components/PageIndicator";
 
 const { width } = Dimensions.get('window');
 
@@ -21,7 +21,7 @@ const OnboardingStep3 = () => {
       {/* Logo Header */}
       <View style={styles.header}>
         <Image 
-          source={require('../assets/thelogo.png')} 
+          source={require('../../assets/thelogo.png')} 
           style={styles.logoImage} 
           resizeMode="contain"
         />
@@ -30,7 +30,7 @@ const OnboardingStep3 = () => {
       {/* Main Content */}
       <View style={styles.contentContainer}>
         <Image 
-          source={require('../assets/screen4.png')} 
+          source={require('../../assets/screen4.png')} 
           style={styles.illustrationImage} 
           resizeMode="contain"
         />

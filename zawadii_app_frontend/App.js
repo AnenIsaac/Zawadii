@@ -6,31 +6,31 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'react-native';
 
 // Import Screens
-import SplashScreen from './screens/SplashScreen';
-import OnboardingStep1 from './screens/OnboardingStep1';
-import OnboardingStep2 from './screens/OnboardingStep2';
-import OnboardingStep3 from './screens/OnboardingStep3';
-import SignupSuccess from './screens/SignupSuccess';
-import EnterSignupCode from './screens/EnterSignupCode';
+import SplashScreen from './screens/SplashScreen'; // Keep as is or move to a 'common' or 'root' folder if preferred
+import OnboardingStep1 from './screens/onboarding/OnboardingStep1';
+import OnboardingStep2 from './screens/onboarding/OnboardingStep2';
+import OnboardingStep3 from './screens/onboarding/OnboardingStep3';
+import SignupSuccess from './screens/auth/SignupSuccess';
+import EnterSignupCode from './screens/auth/EnterSignupCode';
+import Authentication from './screens/auth/Authentication';
+import ForgotPassword from './screens/auth/ForgotPassword';
+import ResetPassword from './screens/auth/ResetPassword';
 
-import ForgotPassword from './screens/ForgotPassword';
+import PointsHistoryScreen from './screens/user/PointsHistoryScreen';
+import PasswordChangeFailure from './screens/user/PasswordChangeFailure';
+import PasswordChangeSuccess from './screens/user/PasswordChangeSuccess';
 
-import PointsHistoryScreen from './screens/PointsHistoryScreen';
-import PasswordChangeFailure from './screens/PasswordChangeFailure';
-import PasswordChangeSuccess from './screens/PasswordChangeSuccess';
-import ResetPassword from './screens/ResetPassword';
-import RewardsScreen from './screens/RewardsScreen';
-import ProfileScreen from './screens/ProfileScreen';
-import Authentication from './screens/Authentication';
-import InfoScreen from './screens/InfoScreen';
-import EnterCode from './screens/EnterCode';
-import HomeScreen from './screens/HomeScreen';
-import SearchScreen from './screens/SearchScreen';
-import NotificationsScreen from './screens/NotificationsScreen';
-import Favourites from './screens/Favourites';
-// import ScanScreen from './screens/ScanScreen';
+import RewardsScreen from './screens/main/RewardsScreen';
+import ProfileScreen from './screens/main/ProfileScreen';
+import InfoScreen from './screens/main/InfoScreen';
+import EnterCode from './screens/main/EnterCode';
+import HomeScreen from './screens/main/HomeScreen';
+import SearchScreen from './screens/main/SearchScreen';
+import NotificationsScreen from './screens/main/NotificationsScreen';
+import Favourites from './screens/main/Favourites';
+// import ScanScreen from './screens/main/ScanScreen'; // Assuming ScanScreen is part of main functionality
 
-// import PointsEarnedScreen from './screens/PointsEarnedScreen';
+// import PointsEarnedScreen from './screens/user/PointsEarnedScreen'; // Assuming PointsEarnedScreen is user-specific
 
 const Stack = createStackNavigator();
 
@@ -52,7 +52,7 @@ export default function App() {
         <Stack.Screen name="OnboardingStep1" component={OnboardingStep1} options={{ gestureEnabled: true }} />
         <Stack.Screen name="OnboardingStep2" component={OnboardingStep2} options={{ gestureEnabled: true }}/>
         <Stack.Screen name="OnboardingStep3" component={OnboardingStep3} options={{ gestureEnabled: true }}/>
-      <Stack.Screen name="SignupSuccess" component={SignupSuccess} />
+        <Stack.Screen name="SignupSuccess" component={SignupSuccess} />
         <Stack.Screen name="EnterSignupCode" component={EnterSignupCode} />
         
         <Stack.Screen name="Authentication" component={Authentication}  />

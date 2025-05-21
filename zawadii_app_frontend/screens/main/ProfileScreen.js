@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import BottomNav from '../components/BottomNav';
+import BottomNav from '../../components/BottomNav';
 
 const ProfileScreen = ({ navigation }) => {
   // User profile data state
@@ -97,7 +97,7 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
             <View style={styles.logoContainer}>
                 <Image 
-                  source={require('../assets/thelogo.png')} 
+                  source={require('../../assets/thelogo.png')} 
                   style={styles.logoImage} 
                   resizeMode="contain"
                 />

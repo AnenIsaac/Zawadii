@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, SafeAreaView, StyleSheet, Image, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from '../components/BottomNav';
+import BottomNav from '../../components/BottomNav';
 
 const PointsHistoryScreen = ({ navigation }) => {
   const transactions = [
@@ -14,7 +14,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '17 Sep 2023',
       time: '10:34 AM',
       transactionId: '9549253174520',
-      logo: require('../assets/luigis-pizza.jpg'),
+      logo: require('../../assets/luigis-pizza.jpg'),
     },
     {
       id: '2',
@@ -25,7 +25,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '16 Sep 2023',
       time: '18:08 PM',
       transactionId: '6857463421',
-      logo: require('../assets/pastabar.jpg'),
+      logo: require('../../assets/pastabar.jpg'),
     },
     {
       id: '3',
@@ -36,7 +36,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '16 Sep 2023',
       time: '11:24 AM',
       transactionId: '2839045841',
-      logo: require('../assets/shawarma27.jpg'),
+      logo: require('../../assets/shawarma27.jpg'),
     },
     {
       id: '4',
@@ -47,7 +47,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '15 Sep 2023',
       time: '10:11 AM',
       transactionId: '0978754216',
-      logo: require('../assets/burger53.jpg'),
+      logo: require('../../assets/burger53.jpg'),
     },
     {
       id: '5',
@@ -58,7 +58,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '14 Sep 2023',
       time: '18:59 PM',
       transactionId: '7652309784',
-      logo: require('../assets/starbucks.jpg'),
+      logo: require('../../assets/starbucks.jpg'),
     },
     {
       id: '6',
@@ -69,7 +69,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '13 Sep 2023',
       time: '10:24 AM',
       transactionId: '9854782911',
-      logo: require('../assets/burgerking.jpg'),
+      logo: require('../../assets/burgerking.jpg'),
     },
     {
       id: '7',
@@ -80,7 +80,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       date: '12 Sep 2023',
       time: '',
       transactionId: '',
-      logo: require('../assets/bigboss.jpg'),
+      logo: require('../../assets/bigboss.jpg'),
     },
   ];
 

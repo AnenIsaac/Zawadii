@@ -44,7 +44,7 @@ const WelcomeModal = ({ visible, onClose, navigation }) => {
           </TouchableOpacity>
           
           <Image 
-            source={require('../assets/burger-friends.jpg')} 
+            source={require('../../assets/burger-friends.jpg')} 
             style={styles.headerImage} 
             resizeMode="cover"
           />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SimpleSidebar from '../components/SimpleSidebar'; 
+import SimpleSidebar from '../../components/SimpleSidebar'; 
 import { 
   View, 
   Text, 
@@ -59,7 +59,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.promotionValidity}>VALID 20ᵗʰ JUNE 2023</Text>
               </View> */}
               <Image 
-                source={require('../assets/happy-man.jpeg')}
+                source={require('../../assets/happy-man.jpeg')}
                 style={styles.promotionImage}
               />
               {/* <View style={styles.promotionTagContainer}>
@@ -72,7 +72,7 @@ const HomeScreen = ({ navigation }) => {
             <View style={[styles.promotionCard, {marginRight: 20}]}>
               {/* Another promotion content */}
               <Image 
-                source={require('../assets/offer2.jpg')}
+                source={require('../../assets/offer2.jpg')}
                 style={styles.promotionImage}
               />
             </View>
@@ -100,7 +100,7 @@ const HomeScreen = ({ navigation }) => {
 
 <View style={styles.favouriteCard}>
   <ImageBackground 
-    source={require('../assets/loyalty-card.jpeg')} 
+    source={require('../../assets/loyalty-card.jpeg')} 
     style={styles.favouriteBackground}
     imageStyle={{ borderRadius: 15 }} // Ensures rounded corners
   >
@@ -157,7 +157,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Reward Item - Free Chips */}
             <View style={styles.rewardCard}>
               <Image 
-                source={require('../assets/fries1.jpeg')}
+                source={require('../../assets/fries1.jpeg')}
                 style={styles.rewardImage}
               />
               <Text style={styles.rewardTitle}>Free Chips</Text>
@@ -170,7 +170,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Reward Item - Free Burger */}
             <View style={styles.rewardCard}>
               <Image 
-                source={require('../assets/burger1.jpeg')}
+                source={require('../../assets/burger1.jpeg')}
                 style={styles.rewardImage}
               />
               <Text style={styles.rewardTitle}>Free Burger</Text>
@@ -183,7 +183,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Reward Item - Free Soda */}
             <View style={styles.rewardCard}>
               <Image 
-                source={require('../assets/soda1.jpeg')}
+                source={require('../../assets/soda1.jpeg')}
                 style={styles.rewardImage}
               />
               <Text style={styles.rewardTitle}>Free Soda</Text>

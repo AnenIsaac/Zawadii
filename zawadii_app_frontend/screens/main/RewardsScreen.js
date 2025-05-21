@@ -519,17 +519,17 @@ export default function RewardsScreen() {
   
   // Rewards data
   const rewardsData = [
-    { id: '1', name: 'Free Chips', points: 20, image: require('../assets/chips2.png'), available: true },
-    { id: '2', name: 'Free Soda', points: 10, image: require('../assets/soda2.png'), available: true },
-    { id: '3', name: 'Free Burger', points: 50, image: require('../assets/burger2.jpg'), available: false },
-    { id: '4', name: '20% Discount', points: 100, image: require('../assets/discount.jpg'), available: false },
+    { id: '1', name: 'Free Chips', points: 20, image: require('../../assets/chips2.png'), available: true },
+    { id: '2', name: 'Free Soda', points: 10, image: require('../../assets/soda2.png'), available: true },
+    { id: '3', name: 'Free Burger', points: 50, image: require('../../assets/burger2.jpg'), available: false },
+    { id: '4', name: '20% Discount', points: 100, image: require('../../assets/discount.jpg'), available: false },
   ];
 
   // Deals data
   const dealsList = [
-    require('../assets/happy-man.jpeg'),
-    require('../assets/fish-wednesday.jpg'),
-    require('../assets/breakfast-bundle.jpg'),
+    require('../../assets/happy-man.jpeg'),
+    require('../../assets/fish-wednesday.jpg'),
+    require('../../assets/breakfast-bundle.jpg'),
   ];
   
   // Modal states - ALL modal visibility states are defined here
@@ -595,7 +595,7 @@ export default function RewardsScreen() {
             </TouchableOpacity>
             
             <Image 
-              source={require('../assets/burger-friends.jpg')} 
+              source={require('../../assets/burger-friends.jpg')} 
               style={styles.headerImage} 
               resizeMode="cover"
             />
@@ -630,7 +630,7 @@ export default function RewardsScreen() {
       
       {/* Background header image */}
       <ImageBackground 
-        source={require('../assets/background.jpg')}
+        source={require('../../assets/background.jpg')}
         style={styles.headerBackground}
       >
         <View style={styles.headerOverlay}>

@@ -1,4 +1,3 @@
-
 import {
   View,
   Text,
@@ -9,19 +8,20 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import PageIndicator from "../components/PageIndicator";
+import PageIndicator from "../../components/PageIndicator"; // Adjust the import path as necessary
 
 const { width } = Dimensions.get('window');
 
-const OnboardingStep2 = () => {
+const OnboardingStep1 = () => {
   const navigation = useNavigation();
+
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Logo Header */}
       <View style={styles.header}>
         <Image 
-          source={require('../assets/thelogo.png')} 
+          source={require('../../assets/thelogo.png')} 
           style={styles.logoImage} 
           resizeMode="contain"
         />
@@ -30,7 +30,7 @@ const OnboardingStep2 = () => {
       {/* Main Content */}
       <View style={styles.contentContainer}>
         <Image 
-          source={require('../assets/screen3.png')} 
+          source={require('../../assets/screen1.png')} 
           style={styles.illustrationImage} 
           resizeMode="contain"
         />
@@ -38,10 +38,10 @@ const OnboardingStep2 = () => {
         {/* Text Content */}
         <View style={styles.textContent}>
           <Text style={styles.title}>
-            Scan a Receipt or QR Code to Earn Points!
+            Shop, Dine or Buy at Any Zawadii Partner
           </Text>
           <Text style={styles.subtitle}>
-            No cards. No hassle. Just scan to collect your rewards.
+            From local cafés to pharmacies, Zawadii helps you save on everyday spending.
           </Text>
         </View>
       </View>
@@ -55,11 +55,11 @@ const OnboardingStep2 = () => {
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
         
-        <PageIndicator current={2} total={3} />
+        <PageIndicator current={1} total={3} />
         
         <TouchableOpacity
           style={styles.nextButton}
-          onPress={() => navigation.navigate("OnboardingStep3")}
+          onPress={() => navigation.navigate("OnboardingStep2")}
         >
           <Text style={styles.nextText}>Next</Text>
         </TouchableOpacity>
@@ -144,4 +144,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingStep2;
+export default OnboardingStep1;

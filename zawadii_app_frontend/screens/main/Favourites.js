@@ -11,7 +11,7 @@ import {
   StatusBar
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
-import BottomNav from '../components/BottomNav';
+import BottomNav from '../../components/BottomNav';
 
 // Dummy data for favourite restaurants
 const favoriteRestaurants = [
@@ -22,7 +22,7 @@ const favoriteRestaurants = [
     pointsTillReward: 760,
     rewards: 5,
     deals: 3,
-    image: require('../assets/fav1.jpg'), // Replace with your actual image path
+    image: require('../../assets/fav1.jpg'), // Replace with your actual image path
     notification: true
   },
   { 
@@ -32,7 +32,7 @@ const favoriteRestaurants = [
     pointsTillReward: 250,
     rewards: 5,
     deals: 3,
-    image: require('../assets/fav2.jpg'), // Replace with your actual image path
+    image: require('../../assets/fav2.jpg'), // Replace with your actual image path
     notification: false
   },
   { 
@@ -42,7 +42,7 @@ const favoriteRestaurants = [
     pointsTillReward: 300,
     rewards: 5,
     deals: 3,
-    image: require('../assets/fav3.jpg'), // Replace with your actual image path
+    image: require('../../assets/fav3.jpg'), // Replace with your actual image path
     notification: true
   },
   { 
@@ -52,7 +52,7 @@ const favoriteRestaurants = [
     pointsTillReward: 520,
     rewards: 5,
     deals: 3,
-    image: require('../assets/fav1.jpg'), // Replace with your actual image path
+    image: require('../../assets/fav1.jpg'), // Replace with your actual image path
     notification: true
   },
 ];
