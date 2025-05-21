@@ -20,6 +20,7 @@
     "expo": "~53.0.9",
     "expo-asset": "~11.1.5",
     "expo-auth-session": "~6.1.5",
+    "expo-camera": "^16.1.6",
     "expo-linear-gradient": "^14.1.4",
     "expo-secure-store": "~14.2.3",
     "expo-status-bar": "~2.2.3",

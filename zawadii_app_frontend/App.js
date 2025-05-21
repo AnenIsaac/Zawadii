@@ -28,7 +28,7 @@ import HomeScreen from './screens/main/HomeScreen';
 import SearchScreen from './screens/main/SearchScreen';
 import NotificationsScreen from './screens/main/NotificationsScreen';
 import Favourites from './screens/main/Favourites';
-// import ScanScreen from './screens/main/ScanScreen'; // Assuming ScanScreen is part of main functionality
+import ScanScreen from './screens/main/ScanScreen'; // Assuming ScanScreen is part of main functionality
 
 // import PointsEarnedScreen from './screens/user/PointsEarnedScreen'; // Assuming PointsEarnedScreen is user-specific
 
@@ -71,7 +71,7 @@ export default function App() {
         <Stack.Screen name="Favourites" component={Favourites} />
         <Stack.Screen name="PointsHistoryScreen" component={PointsHistoryScreen} />
         {/* <Stack.Screen name="PointsEarnedScreen" component={PointsEarnedScreen} /> */}
-        {/* <Stack.Screen name="ScanScreen" component={ScanScreen} /> */}
+        <Stack.Screen name="ScanScreen" component={ScanScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
