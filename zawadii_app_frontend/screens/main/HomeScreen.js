@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react'; // Added useRef
 import SimpleSidebar from '../../components/SimpleSidebar'; 
 import { 
   View, 
@@ -15,9 +15,35 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Sample data for promotions - replace with your actual data source
+const promotionsData = [
+  { id: 'promo1', image: require('../../assets/happy-man.jpeg') },
+  { id: 'promo2', image: require('../../assets/offer2.jpg') },
+  { id: 'promo3', image: require('../../assets/happy-man.jpeg') }, // Example: reusing image
+  { id: 'promo4', image: require('../../assets/offer2.jpg') },   // Example: reusing image
+];
+
+// Constants for promotion carousel
+const PROMOTION_CARD_WIDTH = 300; // from styles.promotionCard.width
+const PROMOTION_CARD_MARGIN_LEFT = 15; // from styles.promotionCard.marginLeft
+const PROMOTION_SNAP_INTERVAL = PROMOTION_CARD_WIDTH + PROMOTION_CARD_MARGIN_LEFT;
+
+
 // const HomeScreen = ({ navigation, showSidebar }) => {
 const HomeScreen = ({ navigation }) => {
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [activePromotionIndex, setActivePromotionIndex] = useState(0); // State for active promotion
+  const promotionsScrollViewRef = useRef(null); // Ref for promotions ScrollView
+
+  const handlePromotionScroll = (event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const currentIndex = Math.floor(scrollPosition / PROMOTION_SNAP_INTERVAL + 0.5); // Robust rounding
+
+    if (currentIndex >= 0 && currentIndex < promotionsData.length) {
+      setActivePromotionIndex(currentIndex);
+    }
+  };
+
   return (
     <>
     <SafeAreaView style={styles.container}>
@@ -46,45 +72,43 @@ const HomeScreen = ({ navigation }) => {
       >
         <ScrollView style={styles.mainScrollView}>
           {/* Promotions Carousel */}
-          <ScrollView 
+          <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.promotionsContainer}
+            ref={promotionsScrollViewRef}
+            snapToInterval={PROMOTION_SNAP_INTERVAL}
+            decelerationRate="fast"
+            onMomentumScrollEnd={handlePromotionScroll}
+            contentContainerStyle={{ paddingRight: PROMOTION_CARD_MARGIN_LEFT }} // Ensures last item can snap correctly
           >
-            {/* KUKU TUESDAY Promotion */}
-            <View style={styles.promotionCard}>
-              {/* <View style={styles.promotionTextContainer}>
-                <Text style={styles.promotionAmount}>TZS 12,000</Text>
-                <Text style={styles.promotionDescription}>Chicken Bucket Deal</Text>
-                <Text style={styles.promotionValidity}>VALID 20ᵗʰ JUNE 2023</Text>
-              </View> */}
-              <Image 
-                source={require('../../assets/happy-man.jpeg')}
-                style={styles.promotionImage}
-              />
-              {/* <View style={styles.promotionTagContainer}>
-                <Text style={styles.promotionTagText}>KUKU</Text>
-                <Text style={styles.promotionTagText2}>TUESDAY</Text>
-              </View> */}
-            </View>
-            
-            {/* More promotion cards would go here */}
-            <View style={[styles.promotionCard, {marginRight: 20}]}>
-              {/* Another promotion content */}
-              <Image 
-                source={require('../../assets/offer2.jpg')}
-                style={styles.promotionImage}
-              />
-            </View>
+            {promotionsData.map((promotion) => (
+              <View
+                key={promotion.id}
+                style={styles.promotionCard} // Assumes marginLeft is in styles.promotionCard
+              >
+                <Image
+                  source={promotion.image}
+                  style={styles.promotionImage}
+                />
+              </View>
+            ))}
           </ScrollView>
-          
+
           {/* Carousel Indicators */}
-          <View style={styles.indicatorsContainer}>
-            <View style={[styles.indicator, styles.activeIndicator]}></View>
-            <View style={styles.indicator}></View>
-            <View style={styles.indicator}></View>
-            <View style={styles.indicator}></View>
-          </View>
+          {promotionsData.length > 1 && ( // Only show indicators if there's more than one promotion
+            <View style={styles.indicatorsContainer}>
+              {promotionsData.map((_, index) => (
+                <View
+                  key={`indicator-${index}`}
+                  style={[
+                    styles.indicator,
+                    activePromotionIndex === index ? styles.activeIndicator : null,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
           
           {/* Favourites Section */}
           <View style={styles.sectionTitleContainer}>
