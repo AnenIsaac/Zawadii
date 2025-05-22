@@ -11,17 +11,17 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'; // Removed MaterialCommunityIcons as email icon can be from Ionicons
 
 const ProfileScreen = ({ navigation }) => {
   // User profile data state
   const [userData, setUserData] = useState({
     name: 'Anen Isaac',
     phone: '07038860354',
-    bio: '',
+    // bio: '', // Removed bio
     gender: 'Male',
     email: 'anenisoaacvet@gmail.com',
-    language: 'English',
+    // language: 'English', // Removed language
   });
 
   // State to keep track of which field is being edited
@@ -53,6 +53,7 @@ const ProfileScreen = ({ navigation }) => {
           {icon}
         </View>
         <View style={styles.settingContent}>
+          <Text style={styles.settingLabel}>{label}</Text>
           {editingField === field ? (
             <TextInput
               style={styles.input}
@@ -60,20 +61,17 @@ const ProfileScreen = ({ navigation }) => {
               onChangeText={setTempValue}
               autoFocus
               onSubmitEditing={() => handleSubmit(field)}
-              onBlur={() => handleSubmit(field)}
+              onBlur={() => saveChanges(field)} // Save changes on blur as well
             />
           ) : (
-            <>
-              <Text style={styles.settingLabel}>{label}</Text>
-              <Text style={styles.settingValue}>{value}</Text>
-            </>
+            <Text style={styles.settingValue}>{value}</Text>
           )}
         </View>
         <TouchableOpacity 
           style={styles.editButton}
-          onPress={() => startEditing(field, value)}
+          onPress={() => editingField === field ? saveChanges(field) : startEditing(field, value)}
         >
-          <MaterialIcons name="edit" size={20} color="#0047AB" />
+          <MaterialIcons name={editingField === field ? "done" : "edit"} size={24} color="#FF8C00" />
         </TouchableOpacity>
       </View>
     );
@@ -83,91 +81,60 @@ const ProfileScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={{ flex: 1 }} // Ensure KeyboardAvoidingView takes full height
       >
-        <ScrollView>
-          {/* Header with back button */}
+        <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+          {/* Header */}
           <View style={styles.header}>
-            {/* <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity> */}
-            <View style={styles.logoContainer}>
-                <Image 
-                  source={require('../../assets/thelogo.png')} 
-                  style={styles.logoImage} 
-                  resizeMode="contain"
-                />
-            </View>
+            <Text style={styles.headerTitle}>My Profile</Text>
           </View>
 
           {/* Profile Photo Section */}
           <View style={styles.profileSection}>
             <View style={styles.profileImageContainer}>
-
-           <Ionicons name="person-outline" size={40} color="#fff" />
-              {/* <Image 
-                source={require('../assets/default-profile.png')} 
+              <Image 
+                source={require('../../assets/happy-man.jpeg')} // Replace with actual profile image if available
                 style={styles.profileImage}
-                defaultSource={require('../assets/default-profile.png')}
-              /> */}
+              />
+              <TouchableOpacity style={styles.cameraIconContainer}>
+                <Ionicons name="camera" size={20} color="#fff" />
+              </TouchableOpacity>
             </View>
-            {/* <Text style={styles.profileEmail}>{userData.name}</Text> */}
+            <Text style={styles.profileName}>{userData.name}</Text>
             <Text style={styles.profileEmail}>{userData.email}</Text>
           </View>
 
           {/* Settings Section */}
           <View style={styles.settingsSection}>
-            <Text style={styles.sectionTitle}>Settings for Profile</Text>
-
             {renderSettingItem(
               <Ionicons name="person-outline" size={22} color="#555" />,
-              'Anen Isaac',
+              'Full Name',
               userData.name,
               'name'
             )}
 
             {renderSettingItem(
               <Ionicons name="call-outline" size={22} color="#555" />,
-              'Phone',
+              'Phone Number',
               userData.phone,
               'phone'
             )}
 
             {renderSettingItem(
-              <MaterialIcons name="description" size={22} color="#555" />,
-              'Bio',
-              userData.bio || 'Add a bio',
-              'bio'
-            )}
-
-            {renderSettingItem(
-              <Ionicons name="person-outline" size={22} color="#555" />,
+              <Ionicons name="male-female-outline" size={22} color="#555" />, // Changed icon for gender
               'Gender',
               userData.gender,
               'gender'
             )}
 
             {renderSettingItem(
-              <MaterialCommunityIcons name="email-outline" size={22} color="#555" />,
-              'Email',
+              <Ionicons name="mail-outline" size={22} color="#555" />, // Changed icon for email
+              'Email Address',
               userData.email,
               'email'
             )}
-
-            {renderSettingItem(
-              <FontAwesome5 name="language" size={20} color="#555" />,
-              'Language',
-              userData.language,
-              'language'
-            )}
           </View>
         </ScrollView>
-
-        {/* Bottom Navigation */}
-        {/* <BottomNav/> */}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -176,137 +143,113 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F7F7F7', // Light gray background for a modern feel
+  },
+  scrollContentContainer: {
+    paddingBottom: 20, // Add some padding at the bottom
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    alignItems: 'center', // Center title
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
-  backButton: {
-    padding: 5,
-  },
-  logoContainer: {
-    flex: 1,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginRight: 30,
-     paddingTop: 30,
-  },
-  logoImage: {
-    width: 160,
-    height: 60,
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0047AB',
-  },
-  logoAccent: {
-    width: 15,
-    height: 8,
-    backgroundColor: '#8B4513',
-    borderRadius: 4,
-    position: 'absolute',
-    top: 0,
-    right: 55,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
   },
   profileSection: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 30,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 10, // Space before settings section
   },
   profileImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f0f0f0',
+    width: 100,
+    height: 100,
+    borderRadius: 50, // Circular image
+    backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-    overflow: 'hidden',
+    marginBottom: 15,
+    position: 'relative', // For camera icon positioning
+    borderWidth: 3,
+    borderColor: '#FF8C00',
   },
   profileImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 50,
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#FF8C00',
+    padding: 8,
+    borderRadius: 20, // Circular background for camera icon
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   profileName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 8,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
   },
   profileEmail: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#777',
   },
   settingsSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 10,
+    borderRadius: 10,
     paddingHorizontal: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-    color: '#0047AB',
+    paddingTop: 10, // Add padding at the top of the section
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 18, // Increased padding for better spacing
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#F0F0F0',
+  },
+  settingItemLast: { // Style for the last item to remove bottom border
+    borderBottomWidth: 0,
   },
   settingIconContainer: {
-    width: 40,
+    width: 30, // Slightly reduced width
     alignItems: 'center',
+    marginRight: 15, // Space between icon and text
   },
   settingContent: {
     flex: 1,
-    paddingLeft: 10,
   },
   settingLabel: {
-    fontSize: 16,
+    fontSize: 16, // Slightly larger label
     fontWeight: '500',
+    color: '#333',
+    marginBottom: 3, // Space between label and value if stacked
   },
   settingValue: {
-    fontSize: 14,
-    color: '#777',
-    marginTop: 2,
+    fontSize: 15, // Slightly larger value
+    color: '#555',
   },
   editButton: {
-    padding: 5,
+    padding: 8, // Increased touchable area
   },
   input: {
-    fontSize: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#0047AB',
+    fontSize: 15,
+    color: '#333',
     paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FF8C00', // Accent color for input underline
   },
-  bottomNav: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    backgroundColor: '#fff',
-    height: 60,
-  },
-  navButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerNavButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  squareButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#0047AB',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  // Removed bottomNav styles as it's handled by MainTabs
 });
 
 export default ProfileScreen;
