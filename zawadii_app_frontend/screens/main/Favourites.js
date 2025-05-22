@@ -10,8 +10,7 @@ import {
   ImageBackground,
   StatusBar
 } from 'react-native';
-import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
-import BottomNav from '../../components/BottomNav';
+import { Ionicons } from '@expo/vector-icons';
 
 // Dummy data for favourite restaurants
 const favoriteRestaurants = [
@@ -133,7 +132,7 @@ export default function Favourites() {
       </ScrollView>
       
       {/* Bottom Navigation */}
-      <BottomNav />
+      {/* <BottomNav /> */}
     </SafeAreaView>
   );
 }
@@ -291,9 +290,5 @@ const styles = StyleSheet.create({
     color: 'white',
     marginLeft: 4,
   },
-  bottomPadding: {
-    height: 70, // Add space for the bottom navigation
-  },
- 
 });
 

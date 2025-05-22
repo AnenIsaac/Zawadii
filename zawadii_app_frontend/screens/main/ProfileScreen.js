@@ -12,7 +12,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import BottomNav from '../../components/BottomNav';
 
 const ProfileScreen = ({ navigation }) => {
   // User profile data state
@@ -89,12 +88,12 @@ const ProfileScreen = ({ navigation }) => {
         <ScrollView>
           {/* Header with back button */}
           <View style={styles.header}>
-            <TouchableOpacity 
+            {/* <TouchableOpacity 
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
               <Ionicons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <View style={styles.logoContainer}>
                 <Image 
                   source={require('../../assets/thelogo.png')} 
@@ -168,7 +167,7 @@ const ProfileScreen = ({ navigation }) => {
         </ScrollView>
 
         {/* Bottom Navigation */}
-        <BottomNav/>
+        {/* <BottomNav/> */}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

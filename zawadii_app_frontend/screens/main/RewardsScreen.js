@@ -636,9 +636,9 @@ export default function RewardsScreen() {
         <View style={styles.headerOverlay}>
           {/* Back button and info button */}
           <View style={styles.topNavigation}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('HomeScreen')}>
+            {/* <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('HomeScreen')}>
               <Ionicons name="chevron-back" size={24} color="white" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             {/* Info Button */}
             <TouchableOpacity 
               style={styles.infoButton} 

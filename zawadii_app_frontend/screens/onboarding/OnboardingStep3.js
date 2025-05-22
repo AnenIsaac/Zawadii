@@ -60,7 +60,7 @@ Let’s Get Started!
         
         <TouchableOpacity
           style={styles.nextButton}
-          onPress={() => navigation.navigate("Authentication")}
+          onPress={() => navigation.navigate("Auth", { screen: "Authentication" })}
         >
           <Text style={styles.nextText}>Next</Text>
         </TouchableOpacity>

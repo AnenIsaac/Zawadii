@@ -200,7 +200,7 @@ const HomeScreen = ({ navigation }) => {
       </LinearGradient>
       
       {/* Bottom Navigation - Fixed */}
-      <View style={styles.bottomNav}>
+      {/* <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem}>
           <Ionicons name="home" size={24} color="#FF8924" />
         </TouchableOpacity>
@@ -209,25 +209,21 @@ const HomeScreen = ({ navigation }) => {
             >
           <Ionicons name="search" size={24} color="#AAAAAA" />
         </TouchableOpacity>
-
         <TouchableOpacity 
-           style={styles.navItem} onPress={() => navigation.navigate('ScanScreen')}
+            style={styles.navItem} 
+            onPress={() => navigation.navigate('ScanScreen')}
         >
           <View style={styles.qrButtonContainer}>
             <Ionicons name="scan" size={28} color="#AAAAAA" />
           </View>
         </TouchableOpacity>
-        <TouchableOpacity 
-         style={styles.navItem} onPress={() => navigation.navigate('RewardsScreen')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('RewardsScreen')}>
           <Ionicons name="gift-outline" size={24} color="#AAAAAA" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem} onPress={() => navigation.navigate('ProfileScreen')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProfileScreen')}>
           <Ionicons name="person-outline" size={24} color="#AAAAAA" />
         </TouchableOpacity>
-      </View>
+      </View> */}
     </SafeAreaView>
      {/* Sidebar */}
      <SimpleSidebar 
@@ -241,6 +237,7 @@ const HomeScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    // paddingBottom: 0,
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
@@ -366,33 +363,37 @@ const styles = StyleSheet.create({
 //   },
 favouriteCard: {
     width: 300,
+    height: 180,
+    marginLeft: 10,
+    marginRight: 5, // Added for spacing if there are multiple cards
     borderRadius: 15,
-    overflow: 'hidden', // Ensures rounded corners on the background image
+    backgroundColor: '#333333', // Fallback color
+    overflow: 'hidden', // Ensures content stays within bounds
+    position: 'relative', // For absolute positioning of children if needed
+    shadowColor: '#000', // Shadow for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Shadow for Android
   },
-  
-//   favouriteBackground: {
-//     width: '100%',
-//     height: '100%',
-//     justifyContent: 'center', // Align content in the center
-//     padding: 15,
-//   },
-  
+  favouriteBackground: {
+    flex: 1, // Make sure it fills the card
+    justifyContent: 'flex-end', // Align content to the bottom
+  },
   favouriteContent: {
-    backgroundColor: 'rgba(0,0,0,0.4)', // Optional overlay for better readability
-    padding: 10,
-    borderRadius: 15,
+    padding: 15, // Padding inside the card
+    backgroundColor: 'rgba(0,0,0,0.4)', // Semi-transparent overlay for text readability
   },
-  
   favouriteHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
   favouriteName: {
-    fontSize: 18,
-    fontWeight: 'bold',
     color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   favouritePoints: {
     fontSize: 28,
@@ -425,110 +426,72 @@ favouriteCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 3,
     marginBottom: 15,
-    width: '85%',  // Adjust width as needed
+    width: '80%', // Control the width of the background
   },
   progressBar: {
-    width: '60%',
-    height: 6,
-    backgroundColor: '#FF8924',
+    height: '100%',
+    backgroundColor: '#FF6B00',
     borderRadius: 3,
   },
   favouriteFooter: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between', // Distributes space between items
+    alignItems: 'center',
+    marginTop: 10, // Adds some space above the footer
   },
   favouriteFooterItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 20,
   },
   favouriteFooterText: {
-    fontSize: 12,
     color: 'white',
-    marginLeft: 5,
-  },
-  addFavouriteButton: {
-    width: 80,
-    height: 170,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-    
-  },
-  addFavouriteCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontSize: 12,
+    marginLeft: 8, // Adds space between the icon and text
   },
   rewardsContainer: {
     paddingLeft: 15,
-    paddingBottom: 20,
+    paddingBottom: 10, // Added padding at the bottom of the scroll view
   },
   rewardCard: {
-    width: 120,
+    width: 150,
+    marginRight: 10,
     backgroundColor: 'white',
-    borderRadius: 15,
-    marginRight: 15,
-    overflow: 'hidden',
+    borderRadius: 10,
+    padding: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
   },
   rewardImage: {
-    width: 120,
-    height: 90,
-    resizeMode: 'cover',
+    width: '100%',
+    height: 80,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   rewardTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '500',
     color: '#333333',
-    paddingHorizontal: 10,
-    paddingTop: 10,
+    marginBottom: 2,
   },
   rewardSubtitle: {
     fontSize: 12,
     color: '#777777',
-    paddingHorizontal: 10,
+    marginBottom: 5,
   },
   rewardPoints: {
-    backgroundColor: '#F5F5F5',
-    padding: 5,
-    alignItems: 'center',
-    marginTop: 5,
+    backgroundColor: '#FFF2E5',
+    borderRadius: 10,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    alignSelf: 'flex-start',
   },
   rewardPointsText: {
+    color: '#FF8924',
     fontSize: 12,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    height: 60,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    backgroundColor: 'white',
-  },
-  navItem: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qrButtonContainer: {
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 30,
-    marginTop: 0,
-    borderWidth: 4,
-    borderColor: 'white',
+    fontWeight: 'bold',
   },
 });
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, SafeAreaView, StyleSheet, Image, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from '../../components/BottomNav';
 
 const PointsHistoryScreen = ({ navigation }) => {
   const transactions = [
@@ -105,7 +104,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}
-        onPress={() => navigation.navigate('RewardsScreen')}
+        onPress={() => navigation.navigate('Main', { screen: 'Rewards' })} // Navigate to HomeScreen
         >
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
@@ -162,7 +161,7 @@ const PointsHistoryScreen = ({ navigation }) => {
       </ScrollView>
       
       {/* Tab Bar */}
-      <BottomNav />
+      {/* <BottomNav /> */}
       
     </SafeAreaView>
   );

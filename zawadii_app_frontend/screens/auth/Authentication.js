@@ -119,7 +119,7 @@ const isValidPhoneNumber = (phone) => {
     setWrongPassword(true);
     
     // If successful, navigate to home screen
-    navigation.navigate('HomeScreen');
+    navigation.navigate('Main', { screen: 'HomeScreen' });
   };
 
   const handleForgotPassword = () => {

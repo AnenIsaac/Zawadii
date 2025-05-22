@@ -57,7 +57,7 @@ const SimpleSidebar = ({ visible, onClose, navigation }) => {
                 style={styles.logItem}
                 onPress={() => {
                   onClose();
-                  navigation.navigate('Login'); // handle sign out logic
+                  navigation.navigate('Auth', {screen: 'Authentication'}); // handle sign out logic
                 }}
               >
                 <Feather name="log-out" size={24} color="#FF3B30"  style={{ transform: [{ rotateY: '180deg' }] }}/>

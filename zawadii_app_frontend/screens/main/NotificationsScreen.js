@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from '../../components/BottomNav';
 
 const NotificationsScreen = ({ navigation }) => {
   return (
@@ -30,7 +29,7 @@ const NotificationsScreen = ({ navigation }) => {
       </View>
       
       {/* Bottom Navigation */}
-     <BottomNav/>
+      {/* <BottomNav/> */}
     </SafeAreaView>
   );
 };
@@ -84,26 +83,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#777',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingBottom: 5,
-  },
-  navItem: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 5,
-    flex: 1,
   },
 });
 

@@ -14,7 +14,7 @@ const SignupSuccess = () => {
 
 useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace('Authentication');
+      navigation.replace('Auth', { screen: 'Authentication' });
     }, 2000);
     return () => clearTimeout(timer);
   }, [navigation]);
