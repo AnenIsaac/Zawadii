@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { ToastAndroid } from 'react-native';
 import { Alert } from 'react-native';
+import { supabase } from '../../supabaseClient';
 
 
 
@@ -100,7 +101,7 @@ const isValidPhoneNumber = (phone) => {
     setShowLoginPassword(!showLoginPassword);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
 
     const { email, password } = loginData;
 
@@ -115,9 +116,12 @@ const isValidPhoneNumber = (phone) => {
     Alert.alert('Invalid Email', 'Please enter a valid email address.');
     return;
   }
-    // For demo purposes, just showing wrong password state
-    setWrongPassword(true);
     
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return Alert.alert('Login Error', error.message);
+    }
+
     // If successful, navigate to home screen
     navigation.navigate('Main', { screen: 'HomeScreen' });
   };
@@ -151,7 +155,8 @@ const isValidPhoneNumber = (phone) => {
   };
 
  
-const handleNext = () => {
+// Signup submission
+const handleNext = async () => {
   const { fullName, email, phoneNumber, password, confirmPassword } = signupData;
 
   // Empty fields check
@@ -190,6 +195,15 @@ const handleNext = () => {
     return;
   }
 
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName, phone: phoneNumber } }
+  });
+  if (error) {
+    return Alert.alert('Signup Error', error.message);
+  }
+
   // If all checks pass
   ToastAndroid.show('Account created successfully! Please log in.', ToastAndroid.SHORT);
 
@@ -202,7 +216,7 @@ const handleNext = () => {
   });
   setTermsAccepted(false);
 
-   navigation.navigate('EnterSignupCode');
+   navigation.navigate('EnterSignupCode', { email });
 };
 
 
