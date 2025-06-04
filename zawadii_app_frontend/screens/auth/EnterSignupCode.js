@@ -5,18 +5,28 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  SafeAreaView, 
+  SafeAreaView,
+  Alert,
   StatusBar,
   Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ToastAndroid } from 'react-native';
+import { supabase } from '../../supabaseClient';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
-const EnterSignupCode = ({ navigation, route }) => {
-  // Extract email from route params or use a placeholder
+const EnterSignupCode = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  // Extract email, phoneNumber and fullName from route params or use a placeholder
   const email = route.params?.email || 'contact@dpscode.com';
+  const phoneNumber = route.params?.phoneNumber || '';
+  const fullName = route.params?.fullName || '';
+  const password = route.params?.password || '';
   
-  // State for verification code (5 digits)
-  const [code, setCode] = useState(['', '', '', '', '']);
+  // State for verification code (6 digits)
+  const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isValid, setIsValid] = useState(false);
   
   // Refs for TextInput focus management
@@ -32,11 +42,11 @@ const EnterSignupCode = ({ navigation, route }) => {
   const handleCodeChange = (text, index) => {
     if (text.length > 1) {
       // If pasting multiple digits, distribute them across fields
-      const digits = text.split('').slice(0, 5);
+      const digits = text.split('').slice(0, 6);
       const newCode = [...code];
       
       digits.forEach((digit, idx) => {
-        if (index + idx < 5) {
+        if (index + idx < 6) {
           newCode[index + idx] = digit;
         }
       });
@@ -44,8 +54,8 @@ const EnterSignupCode = ({ navigation, route }) => {
       setCode(newCode);
       
       // Focus on appropriate field
-      const focusIndex = Math.min(index + digits.length, 4);
-      if (focusIndex < 5) {
+      const focusIndex = Math.min(index + digits.length, 5);
+      if (focusIndex < 6) {
         inputRefs.current[focusIndex].focus();
       } else {
         Keyboard.dismiss();
@@ -57,7 +67,7 @@ const EnterSignupCode = ({ navigation, route }) => {
       setCode(newCode);
       
       // Auto-advance to next field
-      if (text !== '' && index < 4) {
+      if (text !== '' && index < 5) {
         inputRefs.current[index + 1].focus();
       }
     }
@@ -74,20 +84,106 @@ const EnterSignupCode = ({ navigation, route }) => {
     }
   };
 
-  const handleVerify = () => {
-    if (isValid) {
-      // Implement your verification logic here
-      console.log('Verifying code:', code.join(''));
-      // Navigate to next screen on success
-       navigation.navigate('SignupSuccess');
-    }else {
-       console.log('Invalid code!');
+  const handleVerify = async () => {
+    if (!isValid) {
+      return;
     }
+    const otpCode = code.join('');
+
+    try {
+      // 1) Call Supabase to verify OTP (type: 'signup')
+      const { data: verifyData, error: verifyError } =
+        await supabase.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: 'signup',
+        });
+
+      if (verifyError) {
+        console.error('OTP verification error:', verifyError.message);
+        Alert.alert(
+          'Invalid Code',
+          'The code you entered is incorrect or expired.'
+        );
+        return;
+      }
+
+      // Now we have a valid session and `verifyData.user` is the confirmed user
+      const user = verifyData.user;
+      const userId = user.id;
+      // Use the passed‐in params if available; otherwise read from user_metadata
+      const fullName = fullName || user.user_metadata?.full_name || '';
+      const phoneNumber = phoneNumber || user.user_metadata?.phone || '';
+
+      // 2) Insert into customers table under RLS
+      const { error: customerError } = await supabase
+        .from('customers')
+        .insert([
+          {
+            id: userId, // Must match auth.uid()
+            full_name: fullName,
+            email: email,
+            phone_number: phoneNumber,
+          },
+        ]);
+
+      if (customerError) {
+        console.error(
+          'Error inserting into customers:',
+          customerError.message
+        );
+        Alert.alert(
+          'Database Error',
+          'Your account was confirmed, but we could not save your customer record. Please try again.'
+        );
+        return;
+      }
+
+      // 3) Success! Show a toast and navigate into the app
+      ToastAndroid.show(
+        'Account confirmed! Welcome aboard.',
+        ToastAndroid.SHORT
+      );
+
+      navigation.navigate('SignupSuccess');
+    } catch (err) {
+      console.error('Unexpected error in handleVerify:', err);
+      Alert.alert(
+        'Unexpected Error',
+        'Something went wrong. Please try again later.'
+      );
+    }
+
   };
 
-  const handleResendEmail = () => {
-    // Implement resend email logic
-    console.log('Resending email to:', email);
+  const handleResendEmail = async () => {
+    try {
+      // Re-call signUp to force Supabase to send another 'signup' OTP.
+      const { data: resendData, error: resendError } = await supabase.auth.signUp({ 
+        email, password, 
+        options: { data: { full_name: fullName, phone: phoneNumber } } 
+      });
+
+      if (resendError) {
+        console.error('Error resending OTP:', resendError.message);
+        Alert.alert(
+          'Could not resend code',
+          'Please check your email address or try again later.'
+        );
+        return;
+      }
+
+      ToastAndroid.show(
+        'Verification code resent to your email.',
+        ToastAndroid.SHORT
+      );
+    } catch (err) {
+      console.error('Unexpected error in handleResendEmail:', err);
+      Alert.alert(
+        'Unexpected Error',
+        'Cannot resend code at the moment. Try again in a bit.'
+      );
+    }
   };
 
   const goBack = () => {
@@ -122,7 +218,7 @@ const EnterSignupCode = ({ navigation, route }) => {
         <Text style={styles.title}>Check your email</Text>
         <Text style={styles.subtitle}>
           We sent a code to {maskEmail(email)}{'\n'}
-          Enter 5 digit code that mentioned in the email
+          Enter 6-digit code mentioned in the email
         </Text>
         
         <View style={styles.codeContainer}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import Feather from 'react-native-vector-icons/Feather';

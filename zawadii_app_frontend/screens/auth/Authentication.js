@@ -216,7 +216,7 @@ const handleNext = async () => {
   });
   setTermsAccepted(false);
 
-   navigation.navigate('EnterSignupCode', { email });
+   navigation.navigate('EnterSignupCode', { email, phoneNumber, fullName, password });
 };
 
 
@@ -351,6 +351,7 @@ const handleNext = async () => {
                   style={styles.input}
                   placeholder="Email"
                   keyboardType="email-address"
+                  autoCapitalize='none'
                   value={signupData.email}
                   onChangeText={(text) => handleSignupChange('email', text)}
                 />
