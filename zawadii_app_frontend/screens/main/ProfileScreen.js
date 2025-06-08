@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,23 +10,71 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'; // Removed MaterialCommunityIcons as email icon can be from Ionicons
+import { supabase } from '../../supabaseClient'; 
 
 const ProfileScreen = ({ navigation }) => {
   // User profile data state
   const [userData, setUserData] = useState({
-    name: 'Anen Isaac',
-    phone: '07038860354',
+    name: '',
+    phone: '',
     // bio: '', // Removed bio
-    gender: 'Male',
-    email: 'anenisoaacvet@gmail.com',
+    gender: '', // Default
+    email: '',
     // language: 'English', // Removed language
   });
+  const [loading, setLoading] = useState(true);
 
   // State to keep track of which field is being edited
   const [editingField, setEditingField] = useState(null);
   const [tempValue, setTempValue] = useState('');
+
+  // Fetching user profile from Supabase on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      setLoading(true);
+      try {
+        // Get current user’s ID
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          throw userError || new Error('No user session found');
+        }
+        const userId = user.id;
+
+        // Querying `customers` table for this user’s row
+        const { data, error } = await supabase
+          .from('customers')
+          .select('full_name, email, phone_number, gender')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        // Populating local state
+        setUserData({
+          name: data.full_name || '',
+          phone: data.phone_number || '',
+          email: data.email || '',
+          gender: data.gender || '',
+        });
+      } catch (err) {
+        console.error('Error loading user profile:', err.message);
+        Alert.alert('Error', 'Could not load your profile. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   // Function to start editing a field
   const startEditing = (field, value) => {
@@ -34,10 +82,50 @@ const ProfileScreen = ({ navigation }) => {
     setTempValue(value);
   };
 
-  // Function to save changes
-  const saveChanges = (field) => {
-    setUserData({ ...userData, [field]: tempValue });
-    setEditingField(null);
+  // Function to save changes to database (for name or phone)
+  const saveChanges = async (field) => {
+    // If nothing changed, just exit edit mode
+    if (tempValue === userData[field]) {
+      setEditingField(null);
+      return;
+    }
+
+    try {
+      // Get user ID again
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw userError || new Error('No user session');
+      }
+      const userId = user.id;
+
+      // Build update payload
+      const updates = {};
+      if (field === 'name') updates.full_name = tempValue;
+      else if (field === 'phone') updates.phone_number = tempValue;
+      else if (field === 'gender') updates.gender = tempValue;
+      else return; // Only allow name & phone updates
+
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update(updates)
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+
+      // Reflect in local state
+      setUserData((prev) => ({
+        ...prev,
+        [field]: tempValue,
+      }));
+    } catch (err) {
+      console.error('Error saving profile change:', err.message);
+      Alert.alert('Error', 'Could not save changes. Please try again.');
+    } finally {
+      setEditingField(null);
+    }
   };
 
   // Handle text input submission
@@ -46,15 +134,31 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   // Render each setting item
-  const renderSettingItem = (icon, label, value, field) => {
-    return (
-      <View style={styles.settingItem}>
-        <View style={styles.settingIconContainer}>
-          {icon}
-        </View>
-        <View style={styles.settingContent}>
-          <Text style={styles.settingLabel}>{label}</Text>
-          {editingField === field ? (
+  // `editable` controls whether the pencil icon appears
+  const renderSettingItem = (icon, label, value, field, editable) => (
+    <View style={styles.settingItem}>
+      <View style={styles.settingIconContainer}>
+        {icon}
+      </View>
+      <View style={styles.settingContent}>
+        <Text style={styles.settingLabel}>{label}</Text>
+        {editingField === field && editable ? (
+          field === 'gender' ? (
+            <View style={styles.genderOptionsInline}>
+              {['Male','Female'].map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.genderButton,
+                    tempValue === option && styles.genderButtonActive
+                  ]}
+                  onPress={() => setTempValue(option)}
+                >
+                  <Text style={[styles.genderButtonText, tempValue === option && styles.genderButtonTextActive]}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ):(
             <TextInput
               style={styles.input}
               value={tempValue}
@@ -63,19 +167,29 @@ const ProfileScreen = ({ navigation }) => {
               onSubmitEditing={() => handleSubmit(field)}
               onBlur={() => saveChanges(field)} // Save changes on blur as well
             />
-          ) : (
-            <Text style={styles.settingValue}>{value}</Text>
-          )}
-        </View>
+          )
+        ) : (
+          <Text style={styles.settingValue}>{value}</Text>
+        )}
+      </View>
+      {editable && (
         <TouchableOpacity 
           style={styles.editButton}
           onPress={() => editingField === field ? saveChanges(field) : startEditing(field, value)}
         >
           <MaterialIcons name={editingField === field ? "done" : "edit"} size={24} color="#FF8C00" />
         </TouchableOpacity>
-      </View>
+      )}
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading profile…</Text>
+      </SafeAreaView>
     );
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,28 +224,32 @@ const ProfileScreen = ({ navigation }) => {
               <Ionicons name="person-outline" size={22} color="#555" />,
               'Full Name',
               userData.name,
-              'name'
+              'name',
+              true // editable
             )}
 
             {renderSettingItem(
               <Ionicons name="call-outline" size={22} color="#555" />,
               'Phone Number',
               userData.phone,
-              'phone'
+              'phone',
+              true
             )}
 
             {renderSettingItem(
               <Ionicons name="male-female-outline" size={22} color="#555" />, // Changed icon for gender
               'Gender',
               userData.gender,
-              'gender'
+              'gender',
+              true
             )}
 
             {renderSettingItem(
               <Ionicons name="mail-outline" size={22} color="#555" />, // Changed icon for email
               'Email Address',
               userData.email,
-              'email'
+              'email',
+              false // not editable
             )}
           </View>
         </ScrollView>
@@ -144,6 +262,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F7F7F7', // Light gray background for a modern feel
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#555',
   },
   scrollContentContainer: {
     paddingBottom: 20, // Add some padding at the bottom
@@ -249,6 +376,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#FF8C00', // Accent color for input underline
   },
+  genderOptionsInline: {
+  flexDirection: 'row',
+  marginVertical: 8,
+  gap: 10
+},
+genderButton: {
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderWidth: 1,
+  borderColor: '#E0E0E0',
+  borderRadius: 8,
+},
+genderButtonActive: {
+  backgroundColor: '#FF8C00',
+  borderColor: '#FF8C00',
+},
+genderButtonText: {
+  fontSize: 14,
+  color: '#333',
+},
+genderButtonTextActive: {
+  color: '#FFF',
+  fontWeight: '600',
+},
+
   // Removed bottomNav styles as it's handled by MainTabs
 });
 

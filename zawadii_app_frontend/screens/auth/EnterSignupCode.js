@@ -21,8 +21,9 @@ const EnterSignupCode = () => {
 
   // Extract email, phoneNumber and fullName from route params or use a placeholder
   const email = route.params?.email || 'contact@dpscode.com';
-  const phoneNumber = route.params?.phoneNumber || '';
   const fullName = route.params?.fullName || '';
+  const phoneNumber = route.params?.phoneNumber || '';
+  const gender = route.params?.gender || '';
   const password = route.params?.password || '';
   
   // State for verification code (6 digits)
@@ -114,6 +115,7 @@ const EnterSignupCode = () => {
       // Use the passed‐in params if available; otherwise read from user_metadata
       const fullName = fullName || user.user_metadata?.full_name || '';
       const phoneNumber = phoneNumber || user.user_metadata?.phone || '';
+      const gender = gender || user.user_metadata?.gender || 'Male';
 
       // 2) Insert into customers table under RLS
       const { error: customerError } = await supabase
@@ -124,6 +126,7 @@ const EnterSignupCode = () => {
             full_name: fullName,
             email: email,
             phone_number: phoneNumber,
+            gender: gender,
           },
         ]);
 
@@ -161,7 +164,7 @@ const EnterSignupCode = () => {
       // Re-call signUp to force Supabase to send another 'signup' OTP.
       const { data: resendData, error: resendError } = await supabase.auth.signUp({ 
         email, password, 
-        options: { data: { full_name: fullName, phone: phoneNumber } } 
+        options: { data: { full_name: fullName, phone: phoneNumber, gender: gender } } 
       });
 
       if (resendError) {

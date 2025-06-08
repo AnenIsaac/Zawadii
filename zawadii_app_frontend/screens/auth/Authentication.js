@@ -35,6 +35,7 @@ const Authentication = () => {
     fullName: '',
     email: '',
     phoneNumber: '',
+    gender: 'Male', // default to “Male”
     password: '',
     confirmPassword: ''
   });
@@ -157,10 +158,10 @@ const isValidPhoneNumber = (phone) => {
  
 // Signup submission
 const handleNext = async () => {
-  const { fullName, email, phoneNumber, password, confirmPassword } = signupData;
+  const { fullName, email, phoneNumber, gender, password, confirmPassword } = signupData;
 
   // Empty fields check
-  if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
+  if (!fullName || !email || !phoneNumber || !gender || !password || !confirmPassword) {
     Alert.alert('Missing Fields', 'Please fill in all fields.');
     return;
   }
@@ -174,6 +175,12 @@ const handleNext = async () => {
   // Phone number validation
   if (!isValidPhoneNumber(phoneNumber)) {
     Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
+    return;
+  }
+
+  // Gender validation
+  if (gender !== 'Male' && gender !== 'Female') {
+    Alert.alert('Invalid Gender', 'Please select a valid gender.');
     return;
   }
 
@@ -198,7 +205,7 @@ const handleNext = async () => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName, phone: phoneNumber } }
+    options: { data: { full_name: fullName, phone: phoneNumber, gender: gender  } }
   });
   if (error) {
     return Alert.alert('Signup Error', error.message);
@@ -211,12 +218,13 @@ const handleNext = async () => {
     fullName: '',
     email: '',
     phoneNumber: '',
+    gender: 'Male',
     password: '',
     confirmPassword: ''
   });
   setTermsAccepted(false);
 
-   navigation.navigate('EnterSignupCode', { email, phoneNumber, fullName, password });
+   navigation.navigate('EnterSignupCode', { email, phoneNumber, fullName, password, gender });
 };
 
 
@@ -371,6 +379,46 @@ const handleNext = async () => {
                 />
                 <View style={styles.iconContainer}>
                  <Feather name="phone" size={20} color="#666" />
+                </View>
+              </View>
+
+              {/* Gender Selector */}
+              <View style={[styles.genderContainer, styles.inputContainer]}>
+                <Text style={styles.genderLabel}>Gender</Text>
+                <View style={styles.genderOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      signupData.gender === 'Male' && styles.genderButtonActive
+                    ]}
+                    onPress={() => handleSignupChange('gender', 'Male')}
+                  >
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        signupData.gender === 'Male' && styles.genderButtonTextActive
+                      ]}
+                    >
+                      Male
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      signupData.gender === 'Female' && styles.genderButtonActive
+                    ]}
+                    onPress={() => handleSignupChange('gender', 'Female')}
+                  >
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        signupData.gender === 'Female' && styles.genderButtonTextActive
+                      ]}
+                    >
+                      Female
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -634,6 +682,40 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 5,
   },
+  
+  genderContainer: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  genderLabel: {
+    fontSize: 16,
+    color: '#636c72',
+    paddingLeft: 3,
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  genderButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+  },
+  genderButtonActive: {
+    backgroundColor: '#FF8C00',
+    borderColor: '#FF8C00',
+  },
+  genderButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  genderButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+
   // Common styles for both forms
   inputContainer: {
     flexDirection: 'row',
