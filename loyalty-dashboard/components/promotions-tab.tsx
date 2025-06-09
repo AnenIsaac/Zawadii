@@ -1,75 +1,73 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { PenLine, Trash2, Plus } from "lucide-react"
 import { AddEditPromotionModal } from "./add-edit-promotion-modal"
+import { useToast } from "@/components/ui/use-toast"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Business } from "@/types/common"
 
 interface Promotion {
-  id: string
+  id: number
+  created_at: string
+  business_id: string
   title: string
   description: string
-  imageUrl: string
-  startDate: string
-  endDate: string
-  status: "active" | "scheduled" | "ended"
-  priority: number
-  views: number
-  clicks: number
+  image_url: string | null
+  start_date: string | null
+  end_date: string | null
+  status: string
 }
 
-export function PromotionsTab() {
+interface PromotionsTabProps {
+  business?: Business
+}
+
+export function PromotionsTab({ business }: PromotionsTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null)
+  const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
+  const supabase = createClientComponentClient()
 
-  // Mock data - replace with actual API calls
-  const promotions: Promotion[] = [
-    {
-      id: "1",
-      title: "Summer Special",
-      description: "Get 20% off on all summer menu items",
-      imageUrl: "/images/summer-special.jpg",
-      startDate: "2023-06-01",
-      endDate: "2023-08-31",
-      status: "active",
-      priority: 1,
-      views: 1250,
-      clicks: 342
-    },
-    {
-      id: "2",
-      title: "Weekend Brunch",
-      description: "Special brunch menu available every weekend",
-      imageUrl: "/images/brunch.jpg",
-      startDate: "2023-05-01",
-      endDate: "2023-12-31",
-      status: "active",
-      priority: 2,
-      views: 980,
-      clicks: 245
-    },
-    {
-      id: "3",
-      title: "Holiday Season",
-      description: "Festive menu and special holiday treats",
-      imageUrl: "/images/holiday.jpg",
-      startDate: "2023-12-01",
-      endDate: "2023-12-31",
-      status: "scheduled",
-      priority: 3,
-      views: 0,
-      clicks: 0
+  const loadPromotions = async () => {
+    if (!business?.id) return
+
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('business_id', business.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error("Error loading promotions:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load promotions. Please try again later.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setPromotions(data || [])
+    } catch (error) {
+      console.error("Failed to load promotions:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load promotions. Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
-  ]
-
-  const stats = {
-    totalPromotions: promotions.length,
-    activePromotions: promotions.filter(p => p.status === "active").length,
-    scheduledPromotions: promotions.filter(p => p.status === "scheduled").length,
-    totalViews: promotions.reduce((sum, p) => sum + p.views, 0),
-    clickThroughRate: promotions.reduce((sum, p) => sum + p.views, 0) > 0 
-      ? (promotions.reduce((sum, p) => sum + p.clicks, 0) / promotions.reduce((sum, p) => sum + p.views, 0) * 100).toFixed(1) 
-      : 0
   }
+
+  useEffect(() => {
+    loadPromotions()
+  }, [business?.id])
 
   const handleEditPromotion = (promotion: Promotion) => {
     setSelectedPromotion(promotion)
@@ -81,17 +79,137 @@ export function PromotionsTab() {
     setIsModalOpen(true)
   }
 
+  const handleDeletePromotion = async (id: number) => {
+    if (!business?.id) return
+
+    try {
+      const { error } = await supabase
+        .from('promotions')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', business.id)
+
+      if (error) {
+        console.error("Error deleting promotion:", error)
+        toast({
+          title: "Error",
+          description: "Failed to delete promotion. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setPromotions(promotions.filter(promo => promo.id !== id))
+      toast({
+        title: "Success",
+        description: "Promotion deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Failed to delete promotion:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete promotion. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSavePromotion = async (formData: any) => {
+    if (!business?.id) return
+
+    try {
+      if (selectedPromotion) {
+        // Update existing promotion
+        const { data, error } = await supabase
+          .from('promotions')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            image_url: formData.imageUrl,
+            start_date: formData.startDate || null,
+            end_date: formData.endDate || null,
+            status: formData.status,
+          })
+          .eq('id', selectedPromotion.id)
+          .eq('business_id', business.id)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error updating promotion:", error)
+          toast({
+            title: "Error",
+            description: "Failed to update promotion. Please try again.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        setPromotions(promotions.map(p => p.id === data.id ? data : p))
+        toast({
+          title: "Success",
+          description: "Promotion updated successfully.",
+        })
+      } else {
+        // Create new promotion
+        const { data, error } = await supabase
+          .from('promotions')
+          .insert({
+            business_id: business.id,
+            title: formData.title,
+            description: formData.description,
+            image_url: formData.imageUrl,
+            start_date: formData.startDate || null,
+            end_date: formData.endDate || null,
+            status: formData.status,
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating promotion:", error)
+          toast({
+            title: "Error",
+            description: "Failed to create promotion. Please try again.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        setPromotions([data, ...promotions])
+        toast({
+          title: "Success",
+          description: "New promotion created successfully.",
+        })
+      }
+      
+      setIsModalOpen(false)
+    } catch (error) {
+      console.error("Failed to save promotion:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save promotion. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
         return "text-green-500"
-      case "scheduled":
+      case "inactive":
         return "text-blue-500"
-      case "ended":
+      case "expired":
         return "text-gray-500"
       default:
         return "text-gray-500"
     }
+  }
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Not set"
+    return new Date(dateString).toLocaleDateString()
   }
 
   return (
@@ -107,43 +225,37 @@ export function PromotionsTab() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-5 gap-4 mb-8">
-        <Card className="p-6">
-          <h3 className="text-sm font-medium mb-2">Total Promotions</h3>
-          <p className="text-3xl font-bold">{stats.totalPromotions}</p>
-        </Card>
-        
-        <Card className="p-6">
-          <h3 className="text-sm font-medium mb-2">Active Promotions</h3>
-          <p className="text-3xl font-bold">{stats.activePromotions}</p>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-sm font-medium mb-2">Scheduled Promotions</h3>
-          <p className="text-3xl font-bold">{stats.scheduledPromotions}</p>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-sm font-medium mb-2">Total Views</h3>
-          <p className="text-3xl font-bold">{stats.totalViews}</p>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-sm font-medium mb-2">Click-Through Rate</h3>
-          <p className="text-3xl font-bold">{stats.clickThroughRate}%</p>
-        </Card>
-      </div>
-
+      {isLoading ? (
+        <div className="flex justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      ) : promotions.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="mx-auto h-24 w-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+            <Plus className="h-12 w-12 text-orange-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No promotions yet</h3>
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            Create your first promotion to engage customers and boost sales.
+          </p>
+          <Button 
+            onClick={handleAddNewPromotion}
+            className="bg-[#F8843A] hover:bg-[#E77A35] text-white"
+          >
+            Add New Promotion
+          </Button>
+        </div>
+      ) : (
       <div className="space-y-4">
         {promotions.map((promotion) => (
           <div
             key={promotion.id}
             className="flex items-start gap-4 p-4 bg-white rounded-lg border"
           >
-            {promotion.imageUrl ? (
+              {promotion.image_url ? (
               <img
-                src={promotion.imageUrl}
-                alt={promotion.title}
+                  src={promotion.image_url}
+                  alt={promotion.title}
                 className="w-24 h-24 object-cover rounded"
               />
             ) : (
@@ -155,7 +267,7 @@ export function PromotionsTab() {
             <div className="flex-1">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-medium">{promotion.title}</h3>
+                    <h3 className="font-medium">{promotion.title}</h3>
                   <p className="text-sm text-gray-500 mt-1">{promotion.description}</p>
                 </div>
                 <div className="flex gap-2">
@@ -171,6 +283,7 @@ export function PromotionsTab() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-red-500 hover:text-red-700"
+                      onClick={() => handleDeletePromotion(promotion.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -181,44 +294,40 @@ export function PromotionsTab() {
                 <div>
                   <span className="text-gray-500">Status: </span>
                   <span className={getStatusColor(promotion.status)}>
-                    {promotion.status.charAt(0).toUpperCase() + promotion.status.slice(1)}
+                    {promotion.status?.charAt(0).toUpperCase() + promotion.status?.slice(1)}
                   </span>
                 </div>
                 
                 <div>
-                  <span className="text-gray-500">Priority: </span>
-                  <span>{promotion.priority}</span>
-                </div>
-                
-                <div>
-                  <span className="text-gray-500">Views: </span>
-                  <span>{promotion.views}</span>
-                </div>
-                
-                <div>
-                  <span className="text-gray-500">Clicks: </span>
-                  <span>{promotion.clicks}</span>
-                </div>
-                
-                <div>
                   <span className="text-gray-500">Start: </span>
-                  <span>{new Date(promotion.startDate).toLocaleDateString()}</span>
+                  <span>{formatDate(promotion.start_date)}</span>
                 </div>
                 
                 <div>
                   <span className="text-gray-500">End: </span>
-                  <span>{new Date(promotion.endDate).toLocaleDateString()}</span>
+                  <span>{formatDate(promotion.end_date)}</span>
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+      )}
 
       <AddEditPromotionModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        promotion={selectedPromotion}
+        business={business}
+        promotion={selectedPromotion ? {
+          id: selectedPromotion.id.toString(),
+          title: selectedPromotion.title,
+          description: selectedPromotion.description,
+          imageUrl: selectedPromotion.image_url,
+          startDate: selectedPromotion.start_date,
+          endDate: selectedPromotion.end_date,
+          status: selectedPromotion.status as "active" | "inactive" | "expired",
+        } : null}
+        onSave={handleSavePromotion}
       />
     </div>
   )

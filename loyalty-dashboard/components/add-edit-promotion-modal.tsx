@@ -1,55 +1,55 @@
-import { useState, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { useDropzone } from "react-dropzone"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Upload, X } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Business } from "@/types/common"
 
 interface Promotion {
   id: string
   title: string
   description: string
-  imageUrl?: string
-  startDate?: string
-  endDate?: string
-  status: "active" | "scheduled" | "expired"
-  priority: number
-  views: number
-  clicks: number
+  imageUrl: string | null
+  startDate: string | null
+  endDate: string | null
+  status: "active" | "inactive" | "expired"
 }
 
 interface AddEditPromotionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  business?: Business
   promotion?: Promotion | null
+  onSave: (formData: any) => void
 }
 
-export function AddEditPromotionModal({ open, onOpenChange, promotion }: AddEditPromotionModalProps) {
+export function AddEditPromotionModal({ 
+  open, 
+  onOpenChange, 
+  business,
+  promotion, 
+  onSave 
+}: AddEditPromotionModalProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     imageUrl: "",
     startDate: "",
     endDate: "",
-    status: "active" as "active" | "scheduled" | "expired",
-    priority: 1,
+    status: "active" as "active" | "inactive" | "expired"
   })
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     if (promotion) {
@@ -59,9 +59,9 @@ export function AddEditPromotionModal({ open, onOpenChange, promotion }: AddEdit
         imageUrl: promotion.imageUrl || "",
         startDate: promotion.startDate || "",
         endDate: promotion.endDate || "",
-        status: promotion.status,
-        priority: promotion.priority,
+        status: promotion.status
       })
+      setImagePreview(promotion.imageUrl || "")
     } else {
       setFormData({
         title: "",
@@ -69,223 +69,322 @@ export function AddEditPromotionModal({ open, onOpenChange, promotion }: AddEdit
         imageUrl: "",
         startDate: "",
         endDate: "",
-        status: "active",
-        priority: 1,
+        status: "active"
       })
+      setImagePreview("")
     }
-  }, [promotion])
+    setSelectedImage(null)
+  }, [promotion, open])
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleStatusChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      status: value as "active" | "scheduled" | "expired",
-    }))
-  }
-
-  const handlePriorityChange = (value: number[]) => {
-    setFormData((prev) => ({
-      ...prev,
-      priority: value[0],
-    }))
-  }
-
-  const onDrop = (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
     if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Please select an image under 5MB.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setSelectedImage(file)
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }))
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png"],
-    },
-    maxFiles: 1,
-  })
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!business?.id) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Here you would save the promotion to your backend
-    console.log("Saving promotion:", formData)
-    onOpenChange(false)
+    try {
+      setIsUploading(true)
+      
+      // Create unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `${business.id}/promotions/${fileName}`
+
+      const { data, error } = await supabase.storage
+        .from('business-assets')
+        .upload(filePath, file)
+
+      if (error) {
+        console.error('Error uploading image:', error)
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload image. Please try again.",
+          variant: "destructive",
+        })
+        return null
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(filePath)
+
+      return publicUrl
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setIsUploading(false)
+    }
   }
 
-  // Determine status based on dates
-  const determineStatus = () => {
-    const now = new Date()
-    const startDate = formData.startDate ? new Date(formData.startDate) : null
-    const endDate = formData.endDate ? new Date(formData.endDate) : null
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!formData.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a promotion title.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    if (startDate && startDate > now) {
-      return "scheduled"
-    } else if (endDate && endDate < now) {
-      return "expired"
-    } else {
-      return "active"
+    if (!formData.description.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a promotion description.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate dates
+    if (formData.startDate && formData.endDate) {
+      if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+        toast({
+          title: "Validation Error",
+          description: "End date must be after start date.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
+    try {
+      setIsSaving(true)
+      let imageUrl = formData.imageUrl
+
+      // Upload new image if selected
+      if (selectedImage) {
+        const uploadedUrl = await uploadImage(selectedImage)
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl
+        } else {
+          return // Upload failed, don't continue
+        }
+      }
+
+      await onSave({
+        ...formData,
+        imageUrl: imageUrl || null
+      })
+
+    } catch (error) {
+      console.error('Error saving promotion:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save promotion. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+    setImagePreview("")
+    setFormData(prev => ({ ...prev, imageUrl: "" }))
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[70vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{promotion ? "Edit Promotion" : "Add New Promotion"}</DialogTitle>
+          <DialogTitle>
+            {promotion ? "Edit Promotion" : "Add New Promotion"}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="title">Promotion Title</Label>
+            <Label htmlFor="title" className="text-sm font-semibold text-gray-700">
+              Promotion Title *
+            </Label>
             <Input
               id="title"
-              name="title"
+              type="text"
+              placeholder="Enter promotion title"
               value={formData.title}
-              onChange={handleInputChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              className="w-full"
+              maxLength={100}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-sm font-semibold text-gray-700">
+              Description *
+            </Label>
             <Textarea
               id="description"
-              name="description"
+              placeholder="Describe your promotion..."
               value={formData.description}
-              onChange={handleInputChange}
-              maxLength={150}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full min-h-[80px]"
+              maxLength={200}
               required
             />
-            <p className="text-xs text-gray-500 text-right">
-              {formData.description.length}/150 characters
-            </p>
+            <div className="text-xs text-gray-500 text-right">
+              {formData.description.length}/200 characters
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Promotion Banner</Label>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
-                ${
-                  isDragActive
-                    ? "border-orange-500 bg-orange-50"
-                    : "border-gray-300 hover:border-orange-500"
-                }
-                ${formData.imageUrl ? "h-[200px]" : "h-[120px]"}`}
-            >
-              <input {...getInputProps()} />
-              {formData.imageUrl ? (
-                <div className="relative h-full">
+            <Label className="text-sm font-semibold text-gray-700">
+              Promotion Image
+            </Label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 relative">
+              {imagePreview ? (
+                <div className="relative">
                   <img
-                    src={formData.imageUrl}
-                    alt="Promotion banner"
-                    className="h-full mx-auto object-contain"
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-40 object-cover rounded"
                   />
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    className="absolute top-0 right-0 text-gray-500 hover:text-red-500"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setFormData((prev) => ({ ...prev, imageUrl: "" }))
-                    }}
+                    size="icon"
+                    className="absolute top-2 right-2 bg-white bg-opacity-80 hover:bg-opacity-100"
+                    onClick={removeImage}
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500">
-                    {isDragActive
-                      ? "Drop the image here"
-                      : "Drag and drop image here, or click to select"}
+                <div className="text-center">
+                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500 mb-2">
+                    Click to upload an image or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    PNG, JPG, GIF up to 5MB
                   </p>
                 </div>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="startDate" className="text-sm font-semibold text-gray-700">
+                Start Date
+              </Label>
               <Input
                 id="startDate"
-                name="startDate"
-                type="datetime-local"
+                type="date"
                 value={formData.startDate}
-                onChange={handleInputChange}
+                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="endDate" className="text-sm font-semibold text-gray-700">
+                End Date
+              </Label>
               <Input
                 id="endDate"
-                name="endDate"
-                type="datetime-local"
+                type="date"
                 value={formData.endDate}
-                onChange={handleInputChange}
+                onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="priority">Display Priority</Label>
-            <div className="flex items-center gap-4">
-              <Slider
-                id="priority"
-                min={1}
-                max={10}
-                step={1}
-                value={[formData.priority]}
-                onValueChange={handlePriorityChange}
-                className="flex-1"
-              />
-              <span className="text-sm font-medium w-8 text-center">{formData.priority}</span>
-            </div>
-            <p className="text-xs text-gray-500">
-              Higher priority promotions will be shown first to customers
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status" className="text-sm font-semibold text-gray-700">
+              Status
+            </Label>
             <Select
               value={formData.status}
-              onValueChange={handleStatusChange}
+              onValueChange={(value: "active" | "inactive" | "expired") => 
+                setFormData(prev => ({ ...prev, status: value }))
+              }
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
+              <SelectTrigger className="w-full">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500">
-              Status will be automatically determined based on start and end dates
-            </p>
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Save Promotion</Button>
-          </DialogFooter>
         </form>
+
+        <DialogFooter className="px-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="mr-2"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            onClick={handleSubmit}
+            disabled={isSaving || isUploading}
+            className="bg-[#F8843A] hover:bg-[#E77A35] text-white"
+          >
+            {isSaving || isUploading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                {isUploading ? "Uploading..." : "Saving..."}
+              </div>
+            ) : (
+              promotion ? "Update Promotion" : "Create Promotion"
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

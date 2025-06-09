@@ -9,8 +9,11 @@ import { ActivityChart } from "@/components/activity-chart"
 import { CustomersTable } from "@/components/customers-table"
 import { RewardsTable } from "@/components/rewards-table"
 import { RecordActivityModal } from "@/components/record-activity-modal"
+import type { BasePageProps } from "@/types/common"
 
-export function ReportsPage() {
+interface ReportsPageProps extends BasePageProps {}
+
+export function ReportsPage({ user_id, business_id }: ReportsPageProps) {
   const [chartView, setChartView] = useState<"Month" | "Week" | "Day">("Month")
   const [recordActivityModalOpen, setRecordActivityModalOpen] = useState(false)
 
@@ -133,7 +136,11 @@ export function ReportsPage() {
         </div>
       </div>
 
-      <RecordActivityModal open={recordActivityModalOpen} onOpenChange={setRecordActivityModalOpen} />
+      <RecordActivityModal 
+        open={recordActivityModalOpen} 
+        onOpenChange={setRecordActivityModalOpen}
+        businessId={business_id}
+      />
     </div>
   )
 }
