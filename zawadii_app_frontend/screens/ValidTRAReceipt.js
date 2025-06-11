@@ -19,6 +19,7 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
   const [pointsToAward, setPointsToAward] = useState(0);
   const [businessId, setBusinessId] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [globalMoneyPointsRatio, setGlobalMoneyPointsRatio] = useState(null); // Added
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -33,66 +34,98 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
     fetchCurrentUser();
   }, []);
 
+  // Added useEffect to fetch global money_points_ratio
   useEffect(() => {
-    if (tin && receiptData && amountSpent) { // Ensure amountSpent is also available
+    const fetchGlobalSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('zawadii_settings')
+          .select('money_points_ratio')
+          .limit(1) // Assuming there's one row or we take the first
+          .single(); // Assuming it's a single row of settings
+
+        if (error) {
+          console.error('Error fetching Zawadii settings:', error.message);
+          Alert.alert('Error', 'Could not load app settings for points calculation. ' + error.message);
+          setGlobalMoneyPointsRatio(0); // Default or error state
+        } else if (data) {
+          setGlobalMoneyPointsRatio(data.money_points_ratio);
+        } else {
+          console.log('No Zawadii settings found.');
+          Alert.alert('Info', 'App settings for points not found. Points calculation may not work.');
+          setGlobalMoneyPointsRatio(0); // Default or error state
+        }
+      } catch (e) {
+        console.error('Exception fetching Zawadii settings:', e);
+        Alert.alert('Error', 'An unexpected error occurred while fetching app settings.');
+        setGlobalMoneyPointsRatio(0); // Default or error state
+      }
+    };
+    fetchGlobalSettings();
+  }, []);
+
+  useEffect(() => {
+    // Ensure globalMoneyPointsRatio is loaded before proceeding
+    if (tin && receiptData && amountSpent && globalMoneyPointsRatio !== null) {
       const fetchDetailsAndCalculatePoints = async () => {
         setIsLoading(true);
-        let businessNameDisplay = `Business (TIN: ${tin})`;
-        let fetchedBusinessId = null;
-        let calculatedPoints = 0;
-
         try {
-          // 1. Fetch business details (ID and Name)
           const { data: business, error: businessError } = await supabase
             .from('businesses')
-            .select('id, name') // Only need id and name for display and saving interaction
+            .select('id, name') // CORRECTED: money_points_ratio is not in businesses table
             .eq('tin', tin)
             .single();
 
-          if (businessError && businessError.code !== 'PGRST116') {
-            console.error('Error fetching business by TIN:', businessError);
-            Alert.alert('Error', 'Could not verify business details.');
-            // businessNameDisplay and fetchedBusinessId remain default/null
-          } else if (business) {
-            businessNameDisplay = business.name || `Business (TIN: ${tin})`;
-            fetchedBusinessId = business.id;
+          if (businessError) {
+            console.error('Error fetching business details:', businessError.message);
+            Alert.alert('Error', 'Could not fetch business details. ' + businessError.message);
+            setPointsToAward(0);
+            setBusinessName('N/A');
+            setBusinessId(null);
+            return;
           }
-          setBusinessName(businessNameDisplay); // Keep this for the success message
-          setBusinessId(fetchedBusinessId); // <--- ADD THIS LINE
-          // businessName for display will now primarily come from receiptData.company_info.name
 
-          // 2. Fetch money_points_ratio from zawadii_settings
-          const { data: settings, error: settingsError } = await supabase
-            .from('zawadii_settings')
-            .select('money_points_ratio') // Using money_points_ratio
-            .limit(1) // Fetches the first row
-            .single(); // Assumes one relevant settings row or that it's okay to use the first
+          if (!business) {
+            console.log('Business not found for TIN:', tin);
+            setBusinessName('Business Not Registered');
+            setBusinessId(null);
+            setPointsToAward(0);
+            return;
+          }
 
-          if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 means no row found
-            console.error('Error fetching Zawadii settings:', settingsError);
-            Alert.alert('Configuration Error', 'Could not fetch points calculation settings. Points cannot be awarded.');
-            // calculatedPoints remains 0
-          } else if (settings && typeof settings.money_points_ratio === 'number' && settings.money_points_ratio > 0) {
-            const globalConversionRate = settings.money_points_ratio;
-            const parsedAmount = parseAmount(amountSpent); // amountSpent is total_incl_tax
-            calculatedPoints = Math.floor(parsedAmount / globalConversionRate);
+          setBusinessName(business.name); // CORRECTED: Use business.name
+          setBusinessId(business.id);
+
+          const numericAmountSpent = parseAmount(amountSpent);
+
+          // CORRECTED: Use globalMoneyPointsRatio from state
+          if (globalMoneyPointsRatio > 0 && numericAmountSpent > 0) {
+            const calculatedPoints = numericAmountSpent * (globalMoneyPointsRatio / 100);
+            setPointsToAward(Math.floor(calculatedPoints));
+            console.log(`Points calculation: ${numericAmountSpent} * (${globalMoneyPointsRatio} / 100) = ${calculatedPoints}`);
           } else {
-            console.warn('money_points_ratio not found, invalid, or zero in Zawadii settings. Points will be 0.');
-            Alert.alert('Configuration Error', 'Points calculation ratio is not set up correctly or is zero. Points cannot be awarded.');
-            // calculatedPoints remains 0
+            setPointsToAward(0);
+            // CORRECTED: Use globalMoneyPointsRatio in log
+            console.log('No points awarded. Global ratio or amount spent might be zero or invalid.', globalMoneyPointsRatio, numericAmountSpent);
           }
+
         } catch (error) {
-          console.error('Error fetching details or calculating points:', error);
-          Alert.alert('Error', 'An unexpected error occurred while fetching data.');
-          // calculatedPoints remains 0
+          console.error('Failed to fetch business details or calculate points:', error);
+          Alert.alert('Error', 'An unexpected error occurred while fetching details.');
+          setPointsToAward(0);
+          setBusinessName('Error');
+          setBusinessId(null);
         } finally {
-          setPointsToAward(calculatedPoints);
           setIsLoading(false);
         }
       };
       fetchDetailsAndCalculatePoints();
+    } else if (globalMoneyPointsRatio === null && tin && receiptData && amountSpent) {
+      // Optional: Indicate that settings are still loading if other data is present
+      console.log("Waiting for global settings to calculate points...");
+      // Consider setting isLoading to true or showing a message to the user
     }
-  }, [tin, receiptData, amountSpent, supabase]); // Added supabase to dependencies
+  }, [tin, receiptData, amountSpent, globalMoneyPointsRatio, supabase]); // CORRECTED: Added globalMoneyPointsRatio to dependency array
 
   if (!receiptData || !tin || !amountSpent) {
     return (
@@ -486,6 +519,9 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   grandTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#000',
+    paddingTop: 5,
     borderTopWidth: 1,
     borderTopColor: '#000',
     paddingTop: 5,
