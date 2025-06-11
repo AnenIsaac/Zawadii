@@ -271,7 +271,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FF8924',
     paddingHorizontal: 15,
-    paddingVertical: 15,
+    paddingBottom: 15,
+    paddingTop: 30,
     zIndex: 10,
   },
   headerTitle: {

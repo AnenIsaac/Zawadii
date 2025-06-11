@@ -1,490 +1,4 @@
-// import React, { useState } from 'react';
-// import { 
-//   View, 
-//   Text, 
-//   ScrollView, 
-//   TouchableOpacity, 
-//   Image,
-//   SafeAreaView,
-//   Pressable,
-//   ImageBackground,
-//   StatusBar,
-//   StyleSheet, 
-//   Modal,
-//   Linking
-// } from 'react-native';
-// import { Ionicons } from '@expo/vector-icons';
-// import { useNavigation } from "@react-navigation/native";
-
-// export default function RewardsScreen() {
-//   const [activeTab, setActiveTab] = useState('rewards'); // 'rewards' or 'deals'
-//   const navigation = useNavigation();
-  
-//   // Dummy data for the restaurant
-//   const restaurant = { 
-//     name: 'Burger 53',
-//     memberSince: '4.2023',
-//     points: 1240,
-//     pointsTillReward: 760,
-//     rewards: 5,
-//     deals: 3,
-//     socialLinks: ['instagram', 'tiktok', 'whatsapp']
-//   };
-  
-//   // Rewards data
-//   const rewardsData = [
-//     { id: '1', name: 'Free Chips', points: 20, image: require('../assets/chips2.jpg'), available: true },
-//     { id: '2', name: 'Free Soda', points: 10, image: require('../assets/soda2.jpg'), available: true },
-//     { id: '3', name: 'Free Burger', points: 50, image: require('../assets/burger2.jpg'), available: false },
-//     { id: '4', name: '20% Discount', points: 100, image: require('../assets/discount.jpg'), available: false },
-//   ];
-
-//   // Deals data
-//   const dealsList = [
-//     require('../assets/happy-man.jpeg'),
-//     require('../assets/fish-wednesday.jpg'),
-//     require('../assets/breakfast-bundle.jpg'),
-//   ];
-  
-//   // Modal states - ALL modal visibility states are defined here
-//   const [infoModalVisible, setInfoModalVisible] = useState(false);
-//   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
-//   const [redeemConfirmModalVisible, setRedeemConfirmModalVisible] = useState(false);
-//   const [redemptionCodeModalVisible, setRedemptionCodeModalVisible] = useState(false);
-//   const [dealsModalVisible, setDealsModalVisible] = useState(false);
-  
-//   // Data states for modals
-//   const [selectedReward, setSelectedReward] = useState(null);
-//   const [modalType, setModalType] = useState(null); // 'buy' or 'claim'
-//   const [selectedDeal, setSelectedDeal] = useState(null);
-//   const [redemptionCode, setRedemptionCode] = useState('CQ23SDF232');
-  
-//   // Handler for when a reward item is pressed
-//   const handleRewardPress = (reward) => {
-//     setSelectedReward(reward);
-//     setModalType(reward.available ? 'claim' : 'buy');
-//     setPurchaseModalVisible(true);
-//   };
-
-//   // Handler for claim confirmation
-//   const handleClaimConfirm = () => {
-//     setPurchaseModalVisible(false);
-//     setRedeemConfirmModalVisible(true);
-//   };
-
-//   // Handler for showing redemption code
-//   const handleShowRedemptionCode = () => {
-//     setRedeemConfirmModalVisible(false);
-//     setRedemptionCodeModalVisible(true);
-//   };
-
-//   // Handler for social media links
-//   const handleSocialMedia = (platform) => {
-//     switch(platform) {
-//       case 'instagram':
-//         Linking.openURL('https://instagram.com/burger53');
-//         break;
-//       case 'tiktok':
-//         Linking.openURL('https://tiktok.com/@burger53');
-//         break;
-//       case 'whatsapp':
-//         Linking.openURL('https://wa.me/yourphonenumber');
-//         break;
-//     }
-//   };
-
-//   // Welcome/Info Modal Component - Fixed the modalVisible prop issue
-//   const WelcomeModal = ({ visible, onClose }) => {
-//     return (
-//       <Modal
-//         animationType="none"
-//         transparent={true}
-//         visible={visible} // This now correctly receives infoModalVisible value
-//         onRequestClose={onClose}
-//       >
-//         <View style={styles.modalContainer}>
-//           <View style={styles.modalContent}>
-//             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-//               <Ionicons name="close-circle" size={28} color="#888" />
-//             </TouchableOpacity>
-            
-//             <Image 
-//               source={require('../assets/burger-friends.jpg')} 
-//               style={styles.headerImage} 
-//               resizeMode="cover"
-//             />
-            
-//             <View style={styles.textContainer}>
-//               <Text style={styles.welcomeTitle}>Karibu! Welcome to the Burger 53 family!</Text>
-//               <Text style={styles.welcomeText}>
-//                 We started in 2015 with a simple goal: to bring the best, freshest burgers to Dar es Salaam. Now with locations in Mlimani City and Mikocheni, our passion for quality remains unchanged. Our goal is to ensure you enjoy every delicious bite and get rewarded for your loyalty. Start earning points today and experience the taste of Burger 53!
-//               </Text>
-//             </View>
-            
-//             <View style={styles.socialContainer}>
-//               <TouchableOpacity onPress={() => handleSocialMedia('instagram')}>
-//                 <Ionicons name="logo-instagram" size={24} color="#000" />
-//               </TouchableOpacity>
-//               <TouchableOpacity onPress={() => handleSocialMedia('tiktok')}>
-//                 <Ionicons name="logo-tiktok" size={24} color="#000" />
-//               </TouchableOpacity>
-//               <TouchableOpacity onPress={() => handleSocialMedia('whatsapp')}>
-//                 <Ionicons name="logo-whatsapp" size={24} color="#000" />
-//               </TouchableOpacity>
-//             </View>
-//           </View>
-//         </View>
-//       </Modal>
-//     );
-//   };
-  
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <StatusBar barStyle="light-content" />
-      
-//       {/* Background header image */}
-//       <ImageBackground 
-//         source={require('../assets/background.jpg')}
-//         style={styles.headerBackground}
-//       >
-//         <View style={styles.headerOverlay}>
-//           {/* Back button and info button */}
-//           <View style={styles.topNavigation}>
-//             <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('HomeScreen')}>
-//               <Ionicons name="chevron-back" size={24} color="white" />
-//             </TouchableOpacity>
-//             {/* Info Button */}
-//             <TouchableOpacity 
-//               style={styles.infoButton} 
-//               onPress={() => setInfoModalVisible(true)}
-//             >
-//               <Ionicons name="information-circle-outline" size={24} color="white" />
-//             </TouchableOpacity>
-//           </View>
-          
-//           {/* Gift icon and greeting */}
-//           <View style={styles.greetingContainer}>
-//             <View style={styles.giftIconContainer}>
-//               <Ionicons name="gift-outline" size={24} color="white" />
-//             </View>
-//             <Text style={styles.greetingText}>Hi, Judy!</Text>
-//           </View>
-          
-//           {/* Restaurant name and member since */}
-//           <Text style={styles.restaurantName}>{restaurant.name}</Text>
-//           <Text style={styles.memberSinceText}>Member since {restaurant.memberSince}</Text>
-          
-//           {/* Social media links */}
-//           <View style={styles.socialLinksContainer}>
-//             {restaurant.socialLinks.map((platform, index) => (
-//               <TouchableOpacity 
-//                 key={index} 
-//                 style={styles.socialButton}
-//                 onPress={() => handleSocialMedia(platform)}
-//               >
-//                 <Ionicons 
-//                   name={
-//                     platform === 'instagram' ? 'logo-instagram' : 
-//                     platform === 'tiktok' ? 'logo-tiktok' : 'logo-whatsapp'
-//                   } 
-//                   size={18} 
-//                   color="white" 
-//                 />
-//               </TouchableOpacity>
-//             ))}
-//           </View>
-          
-//           {/* Rewards and deals count */}
-//           <View style={styles.statsContainer}>
-//             <View style={styles.statItem}>
-//               <Ionicons name="gift-outline" size={20} color="white" />
-//               <Text style={styles.statText}>{restaurant.rewards} rewards</Text>
-//             </View>
-//             <View style={styles.statItem}>
-//               <Ionicons name="pricetag-outline" size={20} color="white" />
-//               <Text style={styles.statText}>{restaurant.deals} deals</Text>
-//             </View>
-//           </View>
-//         </View>
-//       </ImageBackground>
-      
-//       {/* Points card */}
-//       <View style={styles.pointsCardContainer}>
-//         <View style={styles.pointsCard}>
-//           <View style={styles.pointsRow}>
-//             <Text style={styles.pointsValue}>{restaurant.points}pts</Text>
-//             <TouchableOpacity style={styles.addPointsButton}>
-//               <Ionicons name="add" size={16} color="#FF8C00" />
-//               <Text style={styles.addPointsText}>Add points</Text>
-//             </TouchableOpacity>
-//           </View>
-          
-//           <Text style={styles.pointsTillRewardText}>
-//             {restaurant.pointsTillReward} points till your next rewards
-//           </Text>
-          
-//           {/* Progress Bar */}
-//           <View style={styles.progressBarBackground}>
-//             <View 
-//               style={[
-//                 styles.progressBar, 
-//                 {width: `${(restaurant.points / (restaurant.points + restaurant.pointsTillReward)) * 100}%`}
-//               ]} 
-//             />
-//           </View>
-//         </View>
-//       </View>
-      
-//       {/* Tabs */}
-//       <View style={styles.tabsContainer}>
-//         <TouchableOpacity 
-//           style={[styles.tab, activeTab === 'rewards' && styles.activeTab]}
-//           onPress={() => setActiveTab('rewards')}
-//         >
-//           <Text style={[styles.tabText, activeTab === 'rewards' && styles.activeTabText]}>Rewards</Text>
-//         </TouchableOpacity>
-//         <TouchableOpacity 
-//           style={[styles.tab, activeTab === 'deals' && styles.activeTab]}
-//           onPress={() => setActiveTab('deals')}
-//         >
-//           <Text style={[styles.tabText, activeTab === 'deals' && styles.activeTabText]}>Deals</Text>
-//         </TouchableOpacity>
-//       </View>
-      
-//       {/* Scrollable content */}
-//       <ScrollView style={styles.scrollContent}>
-//         {activeTab === 'rewards' ? (
-//           // Rewards list
-//           rewardsData.map((reward) => (
-//             <View key={reward.id} style={styles.rewardItem}>
-//               <Image source={reward.image} style={styles.rewardImage} />
-//               <View style={styles.rewardInfo}>
-//                 <Text style={styles.rewardName}>{reward.name}</Text>
-//                 <Text style={styles.rewardPoints}>{reward.points} pts</Text>
-//               </View>
-//               <TouchableOpacity 
-//                 style={[
-//                   styles.actionButton, 
-//                   reward.available ? styles.claimButton : styles.buyButton
-//                 ]}
-//                 onPress={() => handleRewardPress(reward)}
-//               >
-//                 <Text style={styles.actionButtonText}>
-//                   {reward.available ? 'Claim' : 'Buy'}
-//                 </Text>
-//               </TouchableOpacity>
-//             </View>
-//           ))
-//         ) : (
-//           // Deals list
-//           <ScrollView 
-//             style={styles.dealsContainer}
-//             showsVerticalScrollIndicator={false}
-//           >
-//             {dealsList.map((imageSource, index) => (
-//               <TouchableOpacity
-//                 key={index}
-//                 onPress={() => {
-//                   setSelectedDeal({
-//                     image: imageSource,
-//                     title: 'KUKU TUESDAY',
-//                     description: 'We bet you love a good deal on a Tuesday\nFor 12,000... Get an extra piece of Kuku... 5 pieces in total!'
-//                   });
-//                   setDealsModalVisible(true);
-//                 }}
-//               >
-//                 <Image 
-//                   source={imageSource}
-//                   style={styles.dealImage}
-//                   resizeMode="cover"
-//                 />
-//               </TouchableOpacity>
-//             ))}
-//           </ScrollView>
-//         )}
-        
-//         {/* Add some bottom padding for scrolling */}
-//         <View style={styles.bottomPadding} />
-//       </ScrollView>
-      
-//       {/* Info Modal */}
-//       <WelcomeModal visible={infoModalVisible} onClose={() => setInfoModalVisible(false)} />
-
-//       {/* Purchase/Buy Modal */}
-//       <Modal
-//         animationType="none"
-//         transparent={true}
-//         visible={purchaseModalVisible}
-//         onRequestClose={() => setPurchaseModalVisible(false)}
-//       >
-//         <View style={styles.centeredView}>
-//           <View style={styles.modalView}>
-//             <View style={styles.orangeLine} />
-//             <Pressable
-//               style={styles.closeButton}
-//               onPress={() => setPurchaseModalVisible(false)}
-//             >
-//               <Text style={styles.closeButtonText}>✕</Text>
-//             </Pressable>
-
-//             <Text style={styles.modalTitle}>
-//               {modalType === 'buy' ? 'Burger 53 Deals' : 'Burger 53 Rewards'}
-//             </Text>
-
-//             <View style={styles.imageContainer}>
-//               {selectedReward?.image && (
-//                 <Image
-//                   source={selectedReward.image}
-//                   style={styles.rewardImage}
-//                 />
-//               )}
-//             </View>
-
-//             <Text style={styles.rewardTitle}>{selectedReward?.name}</Text>
-//             <Text style={styles.pointsText}>{selectedReward?.points} Points</Text>
-//             <Text style={styles.rewardDescription}>
-//               {modalType === 'buy'
-//                 ? `Unlock this deal on your next visit to\nBurger 53.`
-//                 : `Claim your free ${selectedReward?.name?.toLowerCase()} at\nBurger 53.`}
-//             </Text>
-
-//             <TouchableOpacity
-//               style={styles.actionConfirmButton}
-//               onPress={() => {
-//                 if (modalType === 'buy') {
-//                   // Handle buy action
-//                   setPurchaseModalVisible(false);
-//                 } else {
-//                   // Handle claim action - show redemption confirmation
-//                   handleClaimConfirm();
-//                 }
-//               }}
-//             >
-//               <Text style={styles.actionConfirmButtonText}>
-//                 {modalType === 'buy' ? 'Buy Deal' : 'Claim Reward'}
-//               </Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-//       </Modal>
-
-//       {/* Redemption Confirmation Modal */}
-//       <Modal
-//         animationType="none"
-//         transparent={true}
-//         visible={redeemConfirmModalVisible}
-//         onRequestClose={() => setRedeemConfirmModalVisible(false)}
-//       >
-//         <View style={styles.centeredView}>
-//           <View style={styles.modalView}>
-//             <View style={styles.orangeLine} />
-//             <Pressable
-//               style={styles.closeButton}
-//               onPress={() => setRedeemConfirmModalVisible(false)}
-//             >
-//               <Text style={styles.closeButtonText}>✕</Text>
-//             </Pressable>
-
-//             <Text style={styles.modalTitle}>Burger 53 Rewards</Text>
-
-//             <View style={styles.imageContainer}>
-//               {selectedReward?.image && (
-//                 <Image
-//                   source={selectedReward.image}
-//                   style={styles.rewardImage}
-//                 />
-//               )}
-//             </View>
-
-//             <Text style={styles.rewardTitle}>{selectedReward?.name}</Text>
-//             <Text style={styles.claimSuccessText}>Successfully claimed!</Text>
-//             <Text style={styles.rewardDescription}>
-//               Show this code to the cashier to redeem your reward.
-//             </Text>
-
-//             <TouchableOpacity
-//               style={styles.actionConfirmButton}
-//               onPress={handleShowRedemptionCode}
-//             >
-//               <Text style={styles.actionConfirmButtonText}>
-//                 Show Redemption Code
-//               </Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-//       </Modal>
-
-//       {/* Redemption Code Modal */}
-//       <Modal
-//         animationType="none"
-//         transparent={true}
-//         visible={redemptionCodeModalVisible}
-//         onRequestClose={() => setRedemptionCodeModalVisible(false)}
-//       >
-//         <View style={styles.centeredView}>
-//           <View style={styles.codeModalView}>
-//             <Pressable
-//               style={styles.closeButton}
-//               onPress={() => setRedemptionCodeModalVisible(false)}
-//             >
-//               <Text style={styles.closeButtonText}>✕</Text>
-//             </Pressable>
-
-//             <Text style={styles.codeTitle}>Your Redemption Code</Text>
-//             <Text style={styles.redemptionCode}>{redemptionCode}</Text>
-            
-//             <Text style={styles.codeInstructions}>
-//               Present this code to the cashier when placing your order
-//             </Text>
-
-//             <TouchableOpacity
-//               style={styles.doneButton}
-//               onPress={() => setRedemptionCodeModalVisible(false)}
-//             >
-//               <Text style={styles.doneButtonText}>Done</Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-//       </Modal>
-
-//       {/* Deals Detail Modal */}
-//       <Modal
-//         animationType="fade"
-//         transparent={true}
-//         visible={dealsModalVisible}
-//         onRequestClose={() => setDealsModalVisible(false)}
-//       >
-//         <View style={styles.centeredView}>
-//           <View style={styles.dealModalView}>
-//             <Pressable
-//               style={styles.closeButton}
-//               onPress={() => setDealsModalVisible(false)}
-//             >
-//               <Text style={styles.closeButtonText}>✕</Text>
-//             </Pressable>
-
-//             {selectedDeal?.image && (
-//               <Image
-//                 source={selectedDeal.image}
-//                 style={styles.dealImageModal}
-//                 resizeMode="cover"
-//               />
-//             )}
-
-//             <Text style={styles.dealTitle}>{selectedDeal?.title}</Text>
-//             <Text style={styles.dealDescription}>{selectedDeal?.description}</Text>
-//           </View>
-//         </View>
-//       </Modal>
-//     </SafeAreaView>
-//   );
-// }
-
-
-
-
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -500,30 +14,104 @@ import {
   StyleSheet
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../supabaseClient';
 import { useNavigation } from "@react-navigation/native";
 
 export default function RewardsScreen() {
   const [activeTab, setActiveTab] = useState('rewards'); // 'rewards' or 'deals'
   const navigation = useNavigation();
+
+  const BUSINESS_ID = '1a50c776-df6b-416e-ad1d-bba18e5f499f';
+  // const BUSINESS_ID = '4311dcf0-053c-4c57-98a2-22484bf2bd92';
   
-  // Dummy data for the restaurant
-  const restaurant = { 
-    name: 'Burger 53',
-    memberSince: '4.2023',
-    points: 1240,
-    pointsTillReward: 760,
-    rewards: 5,
-    deals: 3,
-    socialLinks: ['instagram', 'tiktok', 'whatsapp']
-  };
-  
-  // Rewards data
-  const rewardsData = [
-    { id: '1', name: 'Free Chips', points: 20, image: require('../../assets/chips2.png'), available: true },
-    { id: '2', name: 'Free Soda', points: 10, image: require('../../assets/soda2.png'), available: true },
-    { id: '3', name: 'Free Burger', points: 50, image: require('../../assets/burger2.jpg'), available: false },
-    { id: '4', name: '20% Discount', points: 100, image: require('../../assets/discount.jpg'), available: false },
-  ];
+  // State to hold the business info
+  const [restaurant, setRestaurant] = useState(null);
+  const [loadingBusiness, setLoadingBusiness] = useState(true);
+
+  const [rewardsData, setRewardsData] = useState([]);
+  const [customerPoints, setCustomerPoints] = useState(0);
+
+  // A state for the authenticated user
+  const [authUser, setAuthUser] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      // console.log('Supabase auth.getUser() →', { user, error });
+      if (error || !user) {
+        Alert.alert('Error', 'You must be signed in to view your profile.');
+      } else {
+        setAuthUser(user);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    // load rewards for this business
+    (async () => {
+      const { data, error } = await supabase
+        .from('rewards')
+        .select('*')
+        .eq('business_id', BUSINESS_ID);
+      if (error) console.error('Error loading rewards:', error);
+      else setRewardsData(data);
+    })();
+  }, []);
+
+  useEffect(() => {
+    // Fetch the business row once on mount
+    (async () => {
+      setLoadingBusiness(true);
+      const { data, error } = await supabase
+        .from('businesses')
+        .select(`
+          id,
+          name,
+          description,
+          logo_url,
+          cover_image_url,
+          phone_number,
+          email,
+          instagram,
+          facebook,
+          tiktok,
+          points_conversion,
+          created_at
+        `)
+        .eq('id', BUSINESS_ID)
+        .single();
+
+      if (error) {
+        console.error('Error loading business:', error);
+        // Optionally show an alert or fallback UI here
+      } else {
+        setRestaurant(data);
+      }
+      setLoadingBusiness(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      // Reset to zero before we start fetching
+      setCustomerPoints(0);
+
+      if (!authUser) return;
+
+      const { data, error } = await supabase
+        .from('customer_points')
+        .select('points')
+        .eq('customer_id', authUser.id)
+        .eq('business_id', BUSINESS_ID)
+        .maybeSingle(); // returns null if no row found
+
+      if (error) {
+        console.error('Error loading customer points:', error);
+      } else {
+        setCustomerPoints(data.points ?? 0);
+      }
+    })();
+  }, [authUser, BUSINESS_ID]);
 
   // Deals data
   const dealsList = [
@@ -548,13 +136,78 @@ export default function RewardsScreen() {
   // Handler for when a reward item is pressed
   const handleRewardPress = (reward) => {
     setSelectedReward(reward);
-    setModalType(reward.available ? 'claim' : 'buy');
+    setModalType(reward.is_active ? 'claim' : 'buy');
     setPurchaseModalVisible(true);
   };
 
   // Handler for claim confirmation
-  const handleClaimConfirm = () => {
+  const handleClaimConfirm = async () => {
     setPurchaseModalVisible(false);
+
+    if(!authUser) {
+      return Alert.alert('Error', 'You must be signed in to claim rewards.');
+    }
+
+    // Takes one unused code for the reward
+    const { data: codeRow, error: fetchCodeError } = await supabase
+      .from('reward_codes')
+      .select('id, status')
+      .eq('reward_id', selectedReward.id)
+      .eq('business_id', BUSINESS_ID)
+      .eq('status', 'unused')
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchCodeError) {
+      console.error('Error fetching reward code:', fetchCodeError);
+      return Alert.alert('Error', 'Could not fetch a reward code. Try again.');
+    }
+    if (!codeRow) {
+      return Alert.alert('Sold Out', 'No more codes are available for this reward.');
+    }
+    console.log('Fetched codeRow:', codeRow);
+
+    // Marks code as claimed
+    const { data: updatedCodeRow, error: updateCodeError } = await supabase
+      .from('reward_codes')
+      .update({
+        customer_id: authUser.id,
+        status: 'claimed',
+        bought_at: new Date().toISOString()
+      })
+      .eq('id', codeRow.id)
+      .select();
+
+    
+    console.log('updateCode response:',  updatedCodeRow, 'Error:', updateCodeError);
+
+    if (updateCodeError) {
+      console.error('Error updating reward code:', updateCodeError);
+      return Alert.alert('Error', 'Could not claim your code. Try again.');
+    }
+    if (!updatedCodeRow || updatedCodeRow.length === 0) {
+      console.warn('No rows were updated—check codeRow.id and RLS policies');
+      return Alert.alert('Error', 'Claim failed; please try again.');
+    }
+
+    // Inserts a new customer_rewards row
+    const { error: claimError } = await supabase
+      .from('customer_rewards')
+      .insert([{
+        customer_id: authUser.id,
+        reward_id: selectedReward.id,
+        business_id: BUSINESS_ID,
+        points_spent: selectedReward.points_required,
+        status: 'claimed',
+        reward_code_id: codeRow.id
+      }]);
+
+    if (claimError) {
+      console.error('Claim error:', claimError);
+      return Alert.alert('Error', 'Could not record your claim. Try again.');
+    }
+
+    // 4) show the “Redeem Confirm” modal
     setRedeemConfirmModalVisible(true);
   };
 
@@ -566,16 +219,21 @@ export default function RewardsScreen() {
 
   // Handler for social media links
   const handleSocialMedia = (platform) => {
-    switch(platform) {
-      case 'instagram':
-        Linking.openURL('https://instagram.com/burger53');
-        break;
-      case 'tiktok':
-        Linking.openURL('https://tiktok.com/@burger53');
-        break;
-      case 'whatsapp':
-        Linking.openURL('https://wa.me/yourphonenumber');
-        break;
+    // Maps platform names to the corresponding field on `restaurant`
+    const urlMap = {
+      instagram: restaurant.instagram,
+      tiktok: restaurant.tiktok,
+      facebook: restaurant.facebook,
+    };
+
+    const url = urlMap[platform];
+    if (url) {
+      Linking.openURL(url).catch((err) => {
+        console.error('Error opening URL:', err);
+        Alert.alert('Error', 'Could not open link.');
+      });
+    } else {
+      Alert.alert('Unavailable', `No ${platform} link provided.`);
     }
   };
 
@@ -601,28 +259,47 @@ export default function RewardsScreen() {
             />
             
             <View style={styles.textContainer}>
-              <Text style={styles.welcomeTitle}>Karibu! Welcome to the Burger 53 family!</Text>
-              <Text style={styles.welcomeText}>
+              <Text style={styles.welcomeTitle}>Karibu! Welcome to the {restaurant.name} family!</Text>
+              {/* <Text style={styles.welcomeText}>
                 We started in 2015 with a simple goal: to bring the best, freshest burgers to Dar es Salaam. Now with locations in Mlimani City and Mikocheni, our passion for quality remains unchanged. Our goal is to ensure you enjoy every delicious bite and get rewarded for your loyalty. Start earning points today and experience the taste of Burger 53!
+              </Text> */}
+              <Text style={styles.welcomeText}>
+                {restaurant.description || 'We are excited to have you here!'}
               </Text>
             </View>
             
             <View style={styles.socialContainer}>
+            {restaurant.instagram && (
               <TouchableOpacity onPress={() => handleSocialMedia('instagram')}>
                 <Ionicons name="logo-instagram" size={24} color="#000" />
               </TouchableOpacity>
+            )}
+            {restaurant.tiktok && (
               <TouchableOpacity onPress={() => handleSocialMedia('tiktok')}>
                 <Ionicons name="logo-tiktok" size={24} color="#000" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleSocialMedia('whatsapp')}>
+            )}
+            {restaurant.tiktok && (
+              <TouchableOpacity onPress={() => handleSocialMedia('facebook')}>
                 <Ionicons name="logo-whatsapp" size={24} color="#000" />
               </TouchableOpacity>
+            )}
             </View>
           </View>
         </View>
       </Modal>
     );
   };
+
+  if (loadingBusiness || !restaurant) {
+    return <Text style={{ flex: 1, alignSelf: 'center', paddingTop: '50%' }}>Loading restaurant info…</Text>;
+  }
+
+  // Compute month.year string
+  const memberSince = (() => {
+    const d = new Date(restaurant.created_at);
+    return `${d.getMonth() + 1}.${d.getFullYear()}`;
+  })();
   
   return (
     <SafeAreaView style={styles.container}>
@@ -653,73 +330,85 @@ export default function RewardsScreen() {
             <View style={styles.giftIconContainer}>
               <Ionicons name="gift-outline" size={24} color="white" />
             </View>
-            <Text style={styles.greetingText}>Hi, Judy!</Text>
+            <Text style={styles.greetingText}>Hi, {authUser.user_metadata.full_name}!</Text>
           </View>
           
           {/* Restaurant name and member since */}
-          <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <Text style={styles.memberSinceText}>Member since {restaurant.memberSince}</Text>
+          <Text style={styles.restaurantName}>{restaurant?.name}</Text>
+          <Text style={styles.memberSinceText}>Member since {memberSince}</Text>
           
           {/* Social media links */}
           <View style={styles.socialLinksContainer}>
-            {restaurant.socialLinks.map((platform, index) => (
+            {restaurant.instagram && (
               <TouchableOpacity 
-                key={index} 
                 style={styles.socialButton}
-                onPress={() => handleSocialMedia(platform)}
+                onPress={() => handleSocialMedia('instagram')}
               >
-                <Ionicons 
-                  name={
-                    platform === 'instagram' ? 'logo-instagram' : 
-                    platform === 'tiktok' ? 'logo-tiktok' : 'logo-whatsapp'
-                  } 
-                  size={18} 
-                  color="white" 
+                <Ionicons name='logo-instagram' size={18} color="white" 
                 />
               </TouchableOpacity>
-            ))}
+            )}
+            {restaurant.tiktok && (
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('tiktok')}
+              >
+                <Ionicons name='logo-tiktok' size={18} color="white" 
+                />
+              </TouchableOpacity>
+            )}
+            {restaurant.facebook && (
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('facebook')}
+              >
+                <Ionicons name='logo-facebook' size={18} color="white" 
+                />
+              </TouchableOpacity>
+            )}
           </View>
           
           {/* Rewards and deals count */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Ionicons name="gift-outline" size={20} color="white" />
-              <Text style={styles.statText}>{restaurant.rewards} rewards</Text>
+              <Text style={styles.statText}>{rewardsData.length} reward{rewardsData.length === 1 ? '' : 's'}</Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="pricetag-outline" size={20} color="white" />
-              <Text style={styles.statText}>{restaurant.deals} deals</Text>
+              <Text style={styles.statText}>{restaurant?.deals || '69'} deals</Text>
+            </View>
+          </View>
+
+          {/* Points card */}
+          <View style={styles.pointsCardContainer}>
+            <View style={styles.pointsCard}>
+              <View style={styles.pointsRow}>
+                <Text style={styles.pointsValue}>{customerPoints.toLocaleString()} pts</Text>
+                <TouchableOpacity style={styles.addPointsButton}>
+                  <Ionicons name="add" size={16} color="#FF8C00" />
+                  <Text style={styles.addPointsText}>Add points</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.pointsTillRewardText}>
+                {restaurant?.pointsTillReward || 'some'} points till your next rewards
+              </Text>
+              
+              {/* Progress Bar */}
+              {/* <View style={styles.progressBarBackground}>
+                <View 
+                  style={[
+                    styles.progressBar, 
+                    {width: `${(restaurant.points / (restaurant.points + restaurant.pointsTillReward)) * 100}%`}
+                  ]} 
+                />
+              </View> */}
             </View>
           </View>
         </View>
       </ImageBackground>
       
-      {/* Points card */}
-      <View style={styles.pointsCardContainer}>
-        <View style={styles.pointsCard}>
-          <View style={styles.pointsRow}>
-            <Text style={styles.pointsValue}>{restaurant.points}pts</Text>
-            <TouchableOpacity style={styles.addPointsButton}>
-              <Ionicons name="add" size={16} color="#FF8C00" />
-              <Text style={styles.addPointsText}>Add points</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.pointsTillRewardText}>
-            {restaurant.pointsTillReward} points till your next rewards
-          </Text>
-          
-          {/* Progress Bar */}
-          <View style={styles.progressBarBackground}>
-            <View 
-              style={[
-                styles.progressBar, 
-                {width: `${(restaurant.points / (restaurant.points + restaurant.pointsTillReward)) * 100}%`}
-              ]} 
-            />
-          </View>
-        </View>
-      </View>
       
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -740,27 +429,35 @@ export default function RewardsScreen() {
       {/* Scrollable content */}
       <ScrollView style={styles.scrollContent}>
         {activeTab === 'rewards' ? (
-          // Rewards list
-          rewardsData.map((reward) => (
-            <View key={reward.id} style={styles.rewardItem}>
-              <Image source={reward.image} style={styles.rewardImage} />
-              <View style={styles.rewardInfo}>
-                <Text style={styles.rewardName}>{reward.name}</Text>
-                <Text style={styles.rewardPoints}>{reward.points} pts</Text>
-              </View>
-              <TouchableOpacity 
-                style={[
-                  styles.actionButton, 
-                  reward.available ? styles.claimButton : styles.buyButton
-                ]}
-                onPress={() => handleRewardPress(reward)}
-              >
-                <Text style={styles.actionButtonText}>
-                  {reward.available ? 'Claim' : 'Buy'}
-                </Text>
-              </TouchableOpacity>
+          rewardsData.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No rewards are available for {restaurant.name} at the moment.
+              </Text>
             </View>
-          ))
+          ) : (
+            // Rewards list
+            rewardsData.map((reward) => (
+              <View key={reward.id} style={styles.rewardItem}>
+                <Image source={{ uri: reward.image_url }} style={styles.rewardImage} />
+                <View style={styles.rewardInfo}>
+                  <Text style={styles.rewardName}>{reward.title}</Text>
+                  <Text style={styles.rewardPoints}>{reward.points_required.toLocaleString()} pts</Text>
+                </View>
+                <TouchableOpacity 
+                  style={[
+                    styles.actionButton, 
+                    reward.is_active ? styles.claimButton : styles.buyButton
+                  ]}
+                  onPress={() => handleRewardPress(reward)}
+                >
+                  <Text style={styles.actionButtonText}>
+                    {reward.is_active ? 'Claim' : 'Buy'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )
         ) : (
           // Deals list
           <ScrollView 
@@ -814,24 +511,24 @@ export default function RewardsScreen() {
             </Pressable>
 
             <Text style={styles.modalTitle1}>
-              {modalType === 'buy' ? 'Burger 53 Deals' : 'Burger 53 Rewards'}
+              {modalType === 'buy' ? `${restaurant.name} Deals` : `${restaurant.name} Rewards`}
             </Text>
 
             <View style={styles.imageContainer1}>
-              {selectedReward?.image && (
+              {selectedReward?.image_url && (
                 <Image
-                  source={selectedReward.image}
+                  source={{ uri: selectedReward.image_url }}
                   style={styles.rewardImage1}
                 />
               )}
             </View>
 
-            <Text style={styles.rewardTitle1}>{selectedReward?.name}</Text>
-            <Text style={styles.pointsText1}>{selectedReward?.points} Points</Text>
+            <Text style={styles.rewardTitle1}>{selectedReward?.title}</Text>
+            <Text style={styles.pointsText1}>{selectedReward?.points_required} Points</Text>
             <Text style={styles.rewardDescription1}>
               {modalType === 'buy'
-                ? `Unlock this deal on your next visit to\nBurger 53.`
-                : `Claim your free ${selectedReward?.name?.toLowerCase()} at\nBurger 53.`}
+                ? `Unlock this deal on your next visit to\n${restaurant.name}.`
+                : `Claim your ${selectedReward?.title.toLowerCase()} at\n${restaurant.name}.`}
             </Text>
 
             <TouchableOpacity
@@ -871,18 +568,18 @@ export default function RewardsScreen() {
               <Text style={styles.closeButtonText1}>✕</Text>
             </Pressable>
 
-            <Text style={styles.modalTitle1}>Burger 53 Rewards</Text>
+            <Text style={styles.modalTitle1}>{restaurant.name} Rewards</Text>
 
             <View style={styles.imageContainer1}>
-              {selectedReward?.image && (
+              {selectedReward?.image_url && (
                 <Image
-                  source={selectedReward.image}
+                  source={{ uri: selectedReward.image_url }}
                   style={styles.rewardImage1}
                 />
               )}
             </View>
 
-            <Text style={styles.rewardTitle1}>{selectedReward?.name}</Text>
+            <Text style={styles.rewardTitle1}>{selectedReward?.title}</Text>
             <Text style={styles.pointsText1}>Successfully claimed!</Text>
             <Text style={styles.rewardDescription1}>
               Show this code to the cashier to redeem your reward.
@@ -896,6 +593,14 @@ export default function RewardsScreen() {
                 Show Redemption Code
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.buyButton1, { marginTop: 8, backgroundColor: '#999' }]}
+              onPress={() => setRedeemConfirmModalVisible(false)}
+            >
+              <Text style={styles.buyButtonText1}>Redeem Later</Text>
+            </TouchableOpacity>
+
           </View>
         </View>
       </Modal>
@@ -918,15 +623,15 @@ export default function RewardsScreen() {
 
             
              <View style={styles.imageContainer1}>
-              {selectedReward?.image && (
+              {selectedReward?.image_url && (
                 <Image
-                  source={selectedReward.image}
+                  source={{ uri: selectedReward.image_url }}
                   style={styles.rewardImage1}
                 />
               )}
             </View>
             
-            <Text style={styles.rewardTitle1}>{selectedReward?.name}</Text>
+            <Text style={styles.rewardTitle1}>{selectedReward?.title}</Text>
             <Text style={styles.modalTitle1}>Your Redemption Code</Text>
             <Text style={styles.rewardTitle1}>{redemptionCode}</Text>
             
@@ -1036,7 +741,7 @@ const styles = StyleSheet.create({
     gap: 30,
   },
   headerBackground: {
-    height: 200,
+    height: 300,
   },
   headerOverlay: {
     flex: 1,
@@ -1100,8 +805,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   pointsCardContainer: {
-    paddingHorizontal: 16,
-    marginTop: -30,
+    // paddingHorizontal: 16,
+    marginVertical: 10,
   },
   pointsCard: {
     backgroundColor: 'white',
@@ -1407,5 +1112,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 20,
     color: '#555',
-  }
+  },
+
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+  },
+
 });
