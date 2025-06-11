@@ -123,8 +123,11 @@ const isValidPhoneNumber = (phone) => {
       return Alert.alert('Login Error', error.message);
     }
 
-    // If successful, navigate to home screen
-    navigation.navigate('Main', { screen: 'HomeScreen' });
+    // If successful, navigate to login success screen
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'LoginSuccess' }],
+    });
   };
 
   const handleForgotPassword = () => {

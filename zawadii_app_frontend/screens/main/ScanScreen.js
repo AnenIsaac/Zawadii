@@ -10,17 +10,27 @@ import {
   StatusBar,
   Platform,
   ActivityIndicator, // Added ActivityIndicator
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { Camera, CameraView } from 'expo-camera'; // Modified import
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import ScannerFrame from '../../components/ScannerFrame'; // Import the updated ScannerFrame
+
+const MODERN_PRIMARY_COLOR = '#FFA500';
+const OVERLAY_COLOR = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent overlay
 
 const ScanScreen = ({ navigation }) => {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Added isLoading state
-  // const [cameraRef, setCameraRef] = useState(null); // Removed: CameraView might not need explicit ref for this usage
   const appState = useRef(AppState.currentState);
+  const isFocused = useIsFocused(); // Hook to check if screen is focused
+
+  // Get screen dimensions for scanner size
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const scannerSize = screenWidth * 0.7; // Make scanner 70% of screen width
 
   const getCameraPermission = async () => {
     console.log("getCameraPermission: Attempting to request camera permissions...");
@@ -60,12 +70,13 @@ const ScanScreen = ({ navigation }) => {
         }
       })();
       setScanned(false); // Reset scanner state when screen comes into focus
+      setIsLoading(false); // Also reset loading state
       console.log("ScanScreen focused, scanner reset.");
       return () => {
         // Optional: cleanup when screen loses focus
         console.log("ScanScreen unfocused.");
       };
-    }, [setHasPermission, setScanned]) // Added dependencies
+    }, [setHasPermission, setScanned, setIsLoading]) // Added dependencies
   );
 
   useEffect(() => {
@@ -91,6 +102,8 @@ const ScanScreen = ({ navigation }) => {
       setScanned(false); // Allow further scans
       return;
     }
+
+    if (isLoading || !isFocused) return; // Prevent multiple triggers or if not focused
 
     setScanned(true); // Keep scanned true to prevent multiple rapid scans
     const scannedUrl = scanEvent.data;
@@ -172,8 +185,8 @@ const ScanScreen = ({ navigation }) => {
 
   if (hasPermission === null) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>Requesting camera permission...</Text>
+      <View style={styles.centeredMessage}>
+        <Text>Requesting for camera permission...</Text>
       </View>
     );
   }
@@ -197,39 +210,54 @@ const ScanScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       {Platform.OS === 'android' && <StatusBar hidden />}
-      <CameraView
-        // ref={setCameraRef} // Removed
-        style={styles.camera}
-        facing="back" // Changed from 'type'
-        barcodeScannerSettings={{ // Changed from 'barCodeScannerSettings'
-          barcodeTypes: ['qr'], // Ensure this format is correct for CameraView
-        }}
-        onBarcodeScanned={scanned || isLoading ? undefined : handleBarCodeScanned} // Prevent scanning if loading
-      >
-        <View style={styles.overlay}>
-          <View style={styles.scannerContainer}>
-            <View style={styles.scannerFrame}>
-              <View style={styles.cornerTopLeft} />
-              <View style={styles.cornerTopRight} />
-              <View style={styles.cornerBottomLeft} />
-              <View style={styles.cornerBottomRight} />
-              <View style={styles.scanLine} />
-            </View>
-            <Text style={styles.scannerText}>Scan QR Code</Text>
-          </View>
-
-          <TouchableOpacity style={styles.cancelButton} onPress={cancelScanning} disabled={isLoading}>
-            <Ionicons name="close-circle-outline" size={20} color="black" />
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FFA500" />
-          <Text style={styles.loadingText}>Processing Receipt...</Text>
-        </View>
+      {isFocused && ( // Only render CameraView if the screen is focused
+        <CameraView
+          // ref={setCameraRef} // Removed
+          style={StyleSheet.absoluteFillObject} // Camera fills the whole screen
+          facing="back" // Changed from 'type'
+          barcodeScannerSettings={{ // Changed from 'barCodeScannerSettings'
+            barcodeTypes: ['qr'], // Ensure this format is correct for CameraView
+          }}
+          onBarcodeScanned={scanned || isLoading ? undefined : handleBarCodeScanned} // Prevent scanning if loading
+        />
       )}
+
+      {/* Overlay and Scanner Frame */}
+      <View style={StyleSheet.absoluteFillObject}>
+        {/* Top Overlay */}
+        <View style={[styles.overlay, { height: (screenHeight - scannerSize) / 2 - 50 }]} /> 
+        <View style={{ flexDirection: 'row' }}>
+          {/* Left Overlay */}
+          <View style={[styles.overlay, { width: (screenWidth - scannerSize) / 2 }]} />
+          {/* Scanner Frame Area (Transparent) */}
+          <View style={{ width: scannerSize, height: scannerSize }}>
+            {isFocused && <ScannerFrame />} 
+          </View>
+          {/* Right Overlay */}
+          <View style={[styles.overlay, { width: (screenWidth - scannerSize) / 2 }]} />
+        </View>
+        {/* Bottom Overlay */}
+        <View style={[styles.overlay, { flex: 1 }]} />
+      </View>
+
+      {isLoading && (
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={isLoading}
+          onRequestClose={() => {}}>
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={MODERN_PRIMARY_COLOR} />
+            <Text style={styles.loadingText}>Fetching Receipt Details...</Text>
+          </View>
+        </Modal>
+      )}
+
+      {!isLoading && isFocused && (
+         <View style={styles.instructionsContainer}>
+           <Text style={styles.instructionsText}>Align QR code within frame</Text>
+         </View>
+       )}
     </SafeAreaView>
   );
 };
@@ -237,9 +265,7 @@ const ScanScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'black', // Background for the camera view area
   },
   permissionDeniedContainer: {
     flex: 1,
@@ -266,111 +292,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  camera: {
-    flex: 1,
-    width: '100%', // Ensure camera view takes full width if container has alignItems/justifyContent
-  },
   overlay: {
+    backgroundColor: OVERLAY_COLOR,
+  },
+  loadingOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingOverlay: { // Added styles for loading overlay
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10, // Ensure it's on top
+    backgroundColor: 'rgba(0,0,0,0.7)', // Darker overlay for loading
   },
-  loadingText: { // Added styles for loading text
+  loadingText: {
+    marginTop: 15,
     color: 'white',
     fontSize: 18,
-    marginTop: 12,
-  },
-  scannerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scannerFrame: {
-    width: 250,
-    height: 250,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    position: 'relative',
-  },
-  cornerTopLeft: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: 30,
-    height: 30,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: 'white',
-  },
-  cornerTopRight: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-    borderColor: 'white',
-  },
-  cornerBottomLeft: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: 30,
-    height: 30,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: 'white',
-  },
-  cornerBottomRight: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderColor: 'white',
-  },
-  scanLine: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    height: 2,
-    backgroundColor: 'orange',
-  },
-  scannerText: {
-    color: 'white',
-    fontSize: 16,
-    marginTop: 20,
     fontWeight: '500',
   },
-  cancelButton: {
-    flexDirection: 'row',
+  instructionsContainer: {
+    position: 'absolute',
+    bottom: 70, // Positioned higher
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginTop: 30,
-  },
-  cancelButtonText: {
-    color: 'black',
-    marginLeft: 5,
-    fontSize: 14,
-  },
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: 25, // Rounded corners for the instruction box
+    marginHorizontal: '15%', // Give some horizontal margin
+ },
+ instructionsText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+ }
 });
 
 export default ScanScreen;

@@ -7,6 +7,7 @@ import ForgotPassword from '../screens/auth/ForgotPassword';
 import ResetPassword from '../screens/auth/ResetPassword';
 import EnterSignupCode from '../screens/auth/EnterSignupCode';
 import SignupSuccess from '../screens/auth/SignupSuccess';
+import LoginSuccessScreen from '../screens/auth/LoginSuccessScreen';
 
 const Stack = createStackNavigator();
 
@@ -14,6 +15,7 @@ const AuthStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Authentication" component={Authentication} />
+      <Stack.Screen name="LoginSuccess" component={LoginSuccessScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
       <Stack.Screen name="ResetPassword" component={ResetPassword} />
       <Stack.Screen name="EnterSignupCode" component={EnterSignupCode} />
