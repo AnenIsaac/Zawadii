@@ -17,6 +17,7 @@ import { Camera, CameraView } from 'expo-camera'; // Modified import
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import ScannerFrame from '../../components/ScannerFrame'; // Import the updated ScannerFrame
+import { supabase } from '../../supabaseClient'; // Import Supabase client
 
 const MODERN_PRIMARY_COLOR = '#FFA500';
 const OVERLAY_COLOR = 'rgba(0, 0, 0, 0.6)'; // Semi-transparent overlay
@@ -165,9 +166,46 @@ const ScanScreen = ({ navigation }) => {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
         console.error('API request timed out:', error);
-        Alert.alert('Request Timeout', 'The system is experiencing some trouble. Please try again later.', [
-          { text: 'OK', onPress: () => setScanned(false) },
-        ]);
+        // Attempt to save the unverified receipt
+        try {
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError || !user) {
+            console.error('Error getting user for saving unverified receipt:', userError);
+            Alert.alert(
+              'Request Timeout & Save Failed',
+              'The receipt scan timed out. We could not save it for later as no user session was found.',
+              [{ text: 'OK', onPress: () => setScanned(false) }]
+            );
+            return;
+          }
+
+          const { error: insertError } = await supabase
+            .from('unverified_receipts')
+            .insert([{ user_id: user.id, scanned_url: scannedUrl, status: 'pending' }]); // Assuming a 'status' column
+
+          if (insertError) {
+            console.error('Error saving unverified receipt to Supabase:', insertError);
+            Alert.alert(
+              'Request Timeout & Save Failed',
+              'The receipt scan timed out. We tried to save it for later, but an error occurred. Please try scanning again.',
+              [{ text: 'OK', onPress: () => setScanned(false) }]
+            );
+          } else {
+            console.log('Unverified receipt saved for user:', user.id, 'URL:', scannedUrl);
+            Alert.alert(
+              'Request Timeout',
+              'The receipt scan timed out. We have saved it, and you can try processing it again later from your profile.',
+              [{ text: 'OK', onPress: () => setScanned(false) }]
+            );
+          }
+        } catch (saveError) {
+          console.error('Unexpected error during saving unverified receipt:', saveError);
+          Alert.alert(
+            'Request Timeout & Save Error',
+            'The receipt scan timed out. An unexpected error occurred while trying to save it for later. Please try scanning again.',
+            [{ text: 'OK', onPress: () => setScanned(false) }]
+          );
+        }
       } else {
         console.error('Error fetching or processing receipt data:', error);
         Alert.alert('Error', 'The receipt may be invalid or there was a problem fetching the data. Please try again.', [
