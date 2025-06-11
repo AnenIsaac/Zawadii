@@ -21,6 +21,7 @@ import PointsHistoryScreen from './screens/user/PointsHistoryScreen';
 import NotificationsScreen from './screens/main/NotificationsScreen';
 import EnterCode from './screens/main/EnterCode';
 import InfoScreen from './screens/main/InfoScreen';
+import ValidTRAReceiptScreen from './screens/ValidTRAReceipt'; // Import the screen
 
 // import PointsEarnedScreen from './screens/user/PointsEarnedScreen'; // Assuming PointsEarnedScreen is user-specific
 
@@ -50,6 +51,20 @@ export default function App() {
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
         <Stack.Screen name="EnterCode" component={EnterCode} />
         <Stack.Screen name="InfoScreen" component={InfoScreen} />
+        
+        {/* Add ValidTRAReceiptScreen as a screen in this top-level AppStack */}
+        {/* This allows navigation from any screen within MainTabs (or other stacks) */}
+        <Stack.Screen 
+          name="ValidTRAReceipt" 
+          component={ValidTRAReceiptScreen} 
+          options={{ 
+            headerShown: true, 
+            title: 'Confirm Receipt Details',
+            // Optional: Customize header style, back button behavior
+            // headerBackTitle: 'Scan', 
+          }} 
+        />
+        
         {/* <Stack.Screen name="PointsEarnedScreen" component={PointsEarnedScreen} /> */}
 
       </Stack.Navigator>

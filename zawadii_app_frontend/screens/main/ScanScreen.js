@@ -83,38 +83,84 @@ const ScanScreen = ({ navigation }) => {
     };
   }, [setScanned]); // Added setScanned as dependency
 
-  const handleBarCodeScanned = (scanEvent) => { // Changed parameter to accept the full event object
-    // Check if the scanEvent object itself is undefined or if data is missing
+  const handleBarCodeScanned = async (scanEvent) => {
     if (!scanEvent || typeof scanEvent.data === 'undefined') {
       console.warn("handleBarCodeScanned: Received undefined or incomplete scan event:", scanEvent);
-      // Do not proceed if the event or its data is invalid.
-      // Avoid setting scanned to true for an invalid scan.
+      setScanned(false); // Allow further scans
       return;
     }
 
-    
-    const { type, data } = scanEvent; // Destructure after validation
-    
-    setScanned(true);
-    const points = parseInt(data, 10);
-    if (isNaN(points)) {
-      Alert.alert('Invalid QR Code', 'The QR code does not contain a valid number of points.', [
+    setScanned(true); // Keep scanned true to prevent multiple rapid scans
+    const scannedUrl = scanEvent.data;
+    console.log('Scanned URL:', scannedUrl);
+
+    if (!scannedUrl.startsWith('https://verify.tra.go.tz/')) {
+      Alert.alert('Invalid QR Code', 'This QR code does not seem to be a valid TRA receipt.', [
         { text: 'OK', onPress: () => setScanned(false) },
       ]);
       return;
     }
-    Alert.alert('QR Code Scanned', `Points : ${data}`, [
-      { text: 'Scan Again', onPress: () => setScanned(false) },
-      { text: 'Claim Points', onPress: () => handleQRSuccess(points) }
-    ]);
+
+    const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${scannedUrl}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+
+    try {
+      console.log('Fetching receipt data from:', apiUrl);
+      const response = await fetch(apiUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Could not retrieve error details.');
+        console.error('API request failed:', response.status, errorText);
+        Alert.alert(
+          'API Error',
+          `Failed to fetch receipt data. Status: ${response.status}. ${errorText}`,
+          [{ text: 'OK', onPress: () => setScanned(false) }]
+        );
+        return;
+      }
+
+      const receiptData = await response.json();
+      console.log('Receipt Data:', receiptData);
+
+      if (receiptData && receiptData.company_info && receiptData.company_info.tin && receiptData.totals && receiptData.totals.total_incl_of_tax) {
+        const tin = receiptData.company_info.tin;
+        const amountSpent = receiptData.totals.total_incl_of_tax;
+
+        console.log('Extracted TIN:', tin);
+        console.log('Extracted Amount Spent:', amountSpent);
+
+        // Navigate to the confirmation screen with all necessary data
+        navigation.navigate('ValidTRAReceipt', {
+          receiptData, // Full data for display and further processing
+          tin,
+          amountSpent,
+          scannedUrl, // Original scanned URL for reference or re-query if needed
+        });
+        // setScanned(false) will be handled by the navigation or when returning to this screen
+      } else {
+        console.error('Invalid or incomplete data from API:', receiptData);
+        Alert.alert('Processing Error', 'Could not extract necessary details from the receipt data.', [
+          { text: 'OK', onPress: () => setScanned(false) },
+        ]);
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error('API request timed out:', error);
+        Alert.alert('Request Timeout', 'The system is experiencing some trouble. Please try again later.', [
+          { text: 'OK', onPress: () => setScanned(false) },
+        ]);
+      } else {
+        console.error('Error fetching or processing receipt data:', error);
+        Alert.alert('Error', 'The receipt may be invalid or there was a problem fetching the data. Please try again.', [
+          { text: 'OK', onPress: () => setScanned(false) },
+        ]);
+      }
+    }
   };
   
-  const handleQRSuccess = (points) => {
-    console.log('Processing QR data - Points:', points);
-    navigation.navigate('PointsScannedScreen', { points });
-    setTimeout(() => setScanned(false), 1000);
-  };
-
   const cancelScanning = () => {
     navigation.goBack();
   };
@@ -229,7 +275,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'transparent',
     position: 'relative',
-// ...existing code...
   },
   cornerTopLeft: {
     position: 'absolute',
