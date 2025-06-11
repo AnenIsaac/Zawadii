@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'; // Removed MaterialCommunityIcons as email icon can be from Ionicons
 import { supabase } from '../../supabaseClient'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileScreen = ({ navigation }) => {
   // User profile data state
@@ -128,6 +129,25 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        Alert.alert('Logout Error', error.message);
+        return;
+      }
+      await AsyncStorage.removeItem('userToken');
+      // Navigate to Auth stack after logout
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Auth' }], 
+      });
+    } catch (e) {
+      console.error("Failed to clear user token or sign out", e);
+      Alert.alert('Logout Error', 'An error occurred during logout. Please try again.');
+    }
+  };
+
   // Handle text input submission
   const handleSubmit = (field) => {
     saveChanges(field);
@@ -218,40 +238,30 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.profileEmail}>{userData.email}</Text>
           </View>
 
-          {/* Settings Section */}
-          <View style={styles.settingsSection}>
-            {renderSettingItem(
-              <Ionicons name="person-outline" size={22} color="#555" />,
-              'Full Name',
-              userData.name,
-              'name',
-              true // editable
-            )}
+          {/* Settings Sections */}
+          <View style={styles.sectionContainer}>
+            {/* Account Settings */}
+            <Text style={styles.sectionTitle}>Account Settings</Text>
+            {renderSettingItem(<Ionicons name="person-outline" size={24} color="#555" />, 'Name', userData.name, 'name', true)}
+            {renderSettingItem(<Ionicons name="call-outline" size={24} color="#555" />, 'Phone', userData.phone, 'phone', true)}
+            {renderSettingItem(<Ionicons name="mail-outline" size={24} color="#555" />, 'Email', userData.email, 'email', false)} 
+            {renderSettingItem(<Ionicons name="transgender-outline" size={24} color="#555" />, 'Gender', userData.gender, 'gender', true)}
 
-            {renderSettingItem(
-              <Ionicons name="call-outline" size={22} color="#555" />,
-              'Phone Number',
-              userData.phone,
-              'phone',
-              true
-            )}
+            {/* Security Settings */}
+            <Text style={styles.sectionTitle}>Security</Text>
+            {renderSettingItem(<Ionicons name="lock-closed-outline" size={24} color="#555" />, 'Change Password', '', 'changePassword', false, () => navigation.navigate('ResetPassword'))}
 
-            {renderSettingItem(
-              <Ionicons name="male-female-outline" size={22} color="#555" />, // Changed icon for gender
-              'Gender',
-              userData.gender,
-              'gender',
-              true
-            )}
-
-            {renderSettingItem(
-              <Ionicons name="mail-outline" size={22} color="#555" />, // Changed icon for email
-              'Email Address',
-              userData.email,
-              'email',
-              false // not editable
-            )}
+            {/* App Settings - Example */}
+            {/* <Text style={styles.sectionTitle}>App Settings</Text> */}
+            {/* {renderSettingItem(<Ionicons name="language-outline" size={24} color="#555" />, 'Language', userData.language, 'language', true)} */}
+            {/* {renderSettingItem(<Ionicons name="notifications-outline" size={24} color="#555" />, 'Notifications', 'On', 'notifications', true)} */}
           </View>
+
+          {/* Logout Button */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -338,6 +348,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingTop: 10, // Add padding at the top of the section
   },
+  sectionContainer: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 10,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    marginBottom: 10, // Space between sections
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -399,6 +425,23 @@ genderButtonText: {
 genderButtonTextActive: {
   color: '#FFF',
   fontWeight: '600',
+},
+logoutButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FF3B30',
+  paddingVertical: 12,
+  borderRadius: 8,
+  marginTop: 20,
+  borderWidth: 1,
+  borderColor: '#FF3B30',
+},
+logoutButtonText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: '500',
+  marginLeft: 8,
 },
 
   // Removed bottomNav styles as it's handled by MainTabs

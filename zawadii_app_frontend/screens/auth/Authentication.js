@@ -15,7 +15,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { ToastAndroid } from 'react-native';
 import { Alert } from 'react-native';
 import { supabase } from '../../supabaseClient';
-
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
 
 const Authentication = () => {
@@ -123,11 +123,22 @@ const isValidPhoneNumber = (phone) => {
       return Alert.alert('Login Error', error.message);
     }
 
-    // If successful, navigate to login success screen
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'LoginSuccess' }],
-    });
+    // If successful, store user token and navigate to login success screen
+    if (data.session) {
+      try {
+        await AsyncStorage.setItem('userToken', data.session.access_token);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'LoginSuccess' }],
+        });
+      } catch (e) {
+        console.error("Failed to save user token", e);
+        Alert.alert('Login Error', 'Could not save your session. Please try again.');
+      }
+    } else {
+      // Handle case where session is null despite no error (should be rare)
+      Alert.alert('Login Error', 'Could not establish a session. Please try again.');
+    }
   };
 
   const handleForgotPassword = () => {
