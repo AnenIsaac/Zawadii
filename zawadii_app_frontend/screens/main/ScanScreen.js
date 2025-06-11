@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
+  ActivityIndicator, // Added ActivityIndicator
 } from 'react-native';
 import { Camera, CameraView } from 'expo-camera'; // Modified import
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -17,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 const ScanScreen = ({ navigation }) => {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Added isLoading state
   // const [cameraRef, setCameraRef] = useState(null); // Removed: CameraView might not need explicit ref for this usage
   const appState = useRef(AppState.currentState);
 
@@ -101,6 +103,7 @@ const ScanScreen = ({ navigation }) => {
       return;
     }
 
+    setIsLoading(true); // Set loading true before API call
     const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${scannedUrl}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
@@ -158,6 +161,8 @@ const ScanScreen = ({ navigation }) => {
           { text: 'OK', onPress: () => setScanned(false) },
         ]);
       }
+    } finally {
+      setIsLoading(false); // Reset loading state in finally block
     }
   };
   
@@ -199,7 +204,7 @@ const ScanScreen = ({ navigation }) => {
         barcodeScannerSettings={{ // Changed from 'barCodeScannerSettings'
           barcodeTypes: ['qr'], // Ensure this format is correct for CameraView
         }}
-        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+        onBarcodeScanned={scanned || isLoading ? undefined : handleBarCodeScanned} // Prevent scanning if loading
       >
         <View style={styles.overlay}>
           <View style={styles.scannerContainer}>
@@ -213,12 +218,18 @@ const ScanScreen = ({ navigation }) => {
             <Text style={styles.scannerText}>Scan QR Code</Text>
           </View>
 
-          <TouchableOpacity style={styles.cancelButton} onPress={cancelScanning}>
+          <TouchableOpacity style={styles.cancelButton} onPress={cancelScanning} disabled={isLoading}>
             <Ionicons name="close-circle-outline" size={20} color="black" />
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </CameraView>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FFA500" />
+          <Text style={styles.loadingText}>Processing Receipt...</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -264,6 +275,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingOverlay: { // Added styles for loading overlay
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10, // Ensure it's on top
+  },
+  loadingText: { // Added styles for loading text
+    color: 'white',
+    fontSize: 18,
+    marginTop: 12,
   },
   scannerContainer: {
     alignItems: 'center',
