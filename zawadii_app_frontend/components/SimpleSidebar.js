@@ -52,17 +52,6 @@ const SimpleSidebar = ({ visible, onClose, navigation }) => {
                 <MaterialIcons name="list" size={24} color="#333" />
                 <Text style={styles.menuItemText}>Points History</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.logItem}
-                onPress={() => {
-                  onClose();
-                  navigation.navigate('Auth', {screen: 'Authentication'}); // handle sign out logic
-                }}
-              >
-                <Feather name="log-out" size={24} color="#FF3B30"  style={{ transform: [{ rotateY: '180deg' }] }}/>
-                <Text style={[styles.menuItemText, styles.signOutText]}>Sign Out</Text>
-              </TouchableOpacity>
             </View>
           </SafeAreaView>
         </View>
@@ -112,22 +101,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  logItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
   menuItemText: {
     fontSize: 16,
     marginLeft: 15,
     color: '#333',
     flex: 1,
-  },
-  signOutText: {
-    color: '#FF3B30',
   },
 });
 

@@ -248,8 +248,8 @@ const ProfileScreen = ({ navigation }) => {
             {renderSettingItem(<Ionicons name="transgender-outline" size={24} color="#555" />, 'Gender', userData.gender, 'gender', true)}
 
             {/* Security Settings */}
-            <Text style={styles.sectionTitle}>Security</Text>
-            {renderSettingItem(<Ionicons name="lock-closed-outline" size={24} color="#555" />, 'Change Password', '', 'changePassword', false, () => navigation.navigate('ResetPassword'))}
+            {/* <Text style={styles.sectionTitle}>Security</Text>
+            {renderSettingItem(<Ionicons name="lock-closed-outline" size={24} color="#555" />, 'Change Password', '', 'changePassword', false, () => navigation.navigate('ResetPassword'))} */}
 
             {/* App Settings - Example */}
             {/* <Text style={styles.sectionTitle}>App Settings</Text> */}
@@ -434,6 +434,7 @@ logoutButton: {
   paddingVertical: 12,
   borderRadius: 8,
   marginTop: 20,
+  marginHorizontal: 20, // Added horizontal margin
   borderWidth: 1,
   borderColor: '#FF3B30',
 },
