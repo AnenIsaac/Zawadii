@@ -63,9 +63,9 @@ export default function Favourites() {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        {/* <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>My Favourites</Text>
         <View style={styles.headerRightSpace} />
       </View>
@@ -143,11 +143,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
   header: {
-    flexDirection: 'row',
+    // flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 25,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     backgroundColor: 'white',

@@ -80,7 +80,7 @@ const ProfileScreen = ({ navigation }) => {
   // Function to start editing a field
   const startEditing = (field, value) => {
     setEditingField(field);
-    setTempValue(value);
+    setTempValue(value.trim());
   };
 
   // Function to save changes to database (for name or phone)
@@ -102,11 +102,12 @@ const ProfileScreen = ({ navigation }) => {
       }
       const userId = user.id;
 
-      // Build update payload
+      // Build update payload, trimming whitespace
+      const cleanValue = tempValue.trim();
       const updates = {};
-      if (field === 'name') updates.full_name = tempValue;
-      else if (field === 'phone') updates.phone_number = tempValue;
-      else if (field === 'gender') updates.gender = tempValue;
+      if (field === 'name') updates.full_name = cleanValue;
+      else if (field === 'phone') updates.phone_number = cleanValue;
+      else if (field === 'gender') updates.gender = cleanValue;
       else return; // Only allow name & phone updates
 
       const { error: updateError } = await supabase
@@ -119,7 +120,7 @@ const ProfileScreen = ({ navigation }) => {
       // Reflect in local state
       setUserData((prev) => ({
         ...prev,
-        [field]: tempValue,
+        [field]: cleanValue,
       }));
     } catch (err) {
       console.error('Error saving profile change:', err.message);
@@ -288,8 +289,9 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    alignItems: 'center', // Center title
+    paddingTop: 25,
+    paddingBottom: 12,
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },

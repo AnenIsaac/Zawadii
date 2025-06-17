@@ -1,124 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image,
-  SafeAreaView,
-  Pressable,
-  ImageBackground,
-  StatusBar,
-  Modal,
-  Linking,
-  StyleSheet
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, Pressable, ImageBackground, StatusBar, Modal, Linking, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 import { useNavigation } from "@react-navigation/native";
 
 export default function RewardsScreen() {
-  const [activeTab, setActiveTab] = useState('rewards'); // 'rewards' or 'deals'
-  const navigation = useNavigation();
-
-  const BUSINESS_ID = '1a50c776-df6b-416e-ad1d-bba18e5f499f';
   // const BUSINESS_ID = '4311dcf0-053c-4c57-98a2-22484bf2bd92';
-  
-  // State to hold the business info
+  const BUSINESS_ID = '1a50c776-df6b-416e-ad1d-bba18e5f499f';
+  const [authUser, setAuthUser] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
-  const [loadingBusiness, setLoadingBusiness] = useState(true);
-
   const [rewardsData, setRewardsData] = useState([]);
   const [customerPoints, setCustomerPoints] = useState(0);
-
-  // A state for the authenticated user
-  const [authUser, setAuthUser] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      // console.log('Supabase auth.getUser() →', { user, error });
-      if (error || !user) {
-        Alert.alert('Error', 'You must be signed in to view your profile.');
-      } else {
-        setAuthUser(user);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    // load rewards for this business
-    (async () => {
-      const { data, error } = await supabase
-        .from('rewards')
-        .select('*')
-        .eq('business_id', BUSINESS_ID);
-      if (error) console.error('Error loading rewards:', error);
-      else setRewardsData(data);
-    })();
-  }, []);
-
-  useEffect(() => {
-    // Fetch the business row once on mount
-    (async () => {
-      setLoadingBusiness(true);
-      const { data, error } = await supabase
-        .from('businesses')
-        .select(`
-          id,
-          name,
-          description,
-          logo_url,
-          cover_image_url,
-          phone_number,
-          email,
-          instagram,
-          facebook,
-          tiktok,
-          points_conversion,
-          created_at
-        `)
-        .eq('id', BUSINESS_ID)
-        .single();
-
-      if (error) {
-        console.error('Error loading business:', error);
-        // Optionally show an alert or fallback UI here
-      } else {
-        setRestaurant(data);
-      }
-      setLoadingBusiness(false);
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      // Reset to zero before we start fetching
-      setCustomerPoints(0);
-
-      if (!authUser) return;
-
-      const { data, error } = await supabase
-        .from('customer_points')
-        .select('points')
-        .eq('customer_id', authUser.id)
-        .eq('business_id', BUSINESS_ID)
-        .maybeSingle(); // returns null if no row found
-
-      if (error) {
-        console.error('Error loading customer points:', error);
-      } else {
-        setCustomerPoints(data.points ?? 0);
-      }
-    })();
-  }, [authUser, BUSINESS_ID]);
-
-  // Deals data
-  const dealsList = [
-    require('../../assets/happy-man.jpeg'),
-    require('../../assets/fish-wednesday.jpg'),
-    require('../../assets/breakfast-bundle.jpg'),
-  ];
+  const [loading, setLoading] = useState(true);
+  
+  const [activeTab, setActiveTab] = useState('rewards'); // 'rewards' or 'deals'
   
   // Modal states - ALL modal visibility states are defined here
   const [infoModalVisible, setInfoModalVisible] = useState(false);
@@ -132,6 +27,88 @@ export default function RewardsScreen() {
   const [modalType, setModalType] = useState(null); // 'buy' or 'claim'
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [redemptionCode, setRedemptionCode] = useState('CQ23SDF232');
+  
+  const navigation = useNavigation();
+  
+
+  useEffect(() => {
+    const loadAll = async () => {
+      try{
+        // 1) get auth user
+        const { data: { user }, error: userErr } = await supabase.auth.getUser()
+        if (userErr || !user) {
+          Alert.alert('Error', 'You must be signed in to view your rewards.')
+          return
+        }
+        setAuthUser(user)
+
+        // 2) kick off business + rewards in parallel
+        const businessPromise = supabase
+          .from('businesses')
+          .select(`
+            id, name, description, logo_url, cover_image_url,
+            phone_number, email, instagram, facebook, tiktok,
+            points_conversion, created_at
+          `)
+          .eq('id', BUSINESS_ID)
+          .single()
+
+        const rewardsPromise = supabase
+          .from('rewards')
+          .select('*')
+          .eq('business_id', BUSINESS_ID)
+
+        const [ { data: business, error: bizErr },
+                { data: rewards, error: rewardsErr } ] =
+          await Promise.all([businessPromise, rewardsPromise])
+
+        if (bizErr) {
+          console.error('Error loading business:', bizErr)
+          Alert.alert('Error', 'Could not load restaurant info.')
+          return
+        }
+        if (rewardsErr) {
+          console.error('Error loading rewards:', rewardsErr)
+          // you can still continue, maybe there just aren't any
+        }
+
+        setRestaurant(business)
+        setRewardsData(rewards || [])
+
+        // 3) now load customer points
+        const { data: cpData, error: cpErr } = await supabase
+          .from('customer_points')
+          .select('points')
+          .eq('customer_id', user.id)
+          .eq('business_id', BUSINESS_ID)
+          .maybeSingle()
+
+        if (cpErr) {
+          console.error('Error loading customer points:', cpErr)
+        } else {
+          setCustomerPoints(cpData?.points ?? 0)
+        }
+      } catch (err) {
+        console.error('Unexpected error in loadAll:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAll()
+  }, [])
+
+  if (loading) {
+    return <Text>Loading…</Text>
+  }
+
+  // Deals data
+  const dealsList = [
+    require('../../assets/happy-man.jpeg'),
+    require('../../assets/fish-wednesday.jpg'),
+    require('../../assets/breakfast-bundle.jpg'),
+  ];
+  
   
   // Handler for when a reward item is pressed
   const handleRewardPress = (reward) => {
@@ -149,26 +126,28 @@ export default function RewardsScreen() {
     }
 
     // Takes one unused code for the reward
-    const { data: codeRow, error: fetchCodeError } = await supabase
+    const { data: rows, error: fetchErr } = await supabase
       .from('reward_codes')
-      .select('id, status')
+      .select('id, code')
       .eq('reward_id', selectedReward.id)
       .eq('business_id', BUSINESS_ID)
       .eq('status', 'unused')
       .limit(1)
-      .maybeSingle();
-
-    if (fetchCodeError) {
-      console.error('Error fetching reward code:', fetchCodeError);
+      // .maybeSingle();
+  
+    if (fetchErr) {
+      console.error('Error fetching reward code:', fetchErr);
       return Alert.alert('Error', 'Could not fetch a reward code. Try again.');
     }
-    if (!codeRow) {
-      return Alert.alert('Sold Out', 'No more codes are available for this reward.');
-    }
-    console.log('Fetched codeRow:', codeRow);
+
+  const codeRow = rows?.[0];
+  if (!codeRow) {
+    return Alert.alert('Sold Out', 'No more codes are available for this reward.');
+  }
 
     // Marks code as claimed
-    const { data: updatedCodeRow, error: updateCodeError } = await supabase
+  console.log('Marking code as claimed, id=', codeRow.id);
+    const { data: updated, error: updateError } = await supabase
       .from('reward_codes')
       .update({
         customer_id: authUser.id,
@@ -177,21 +156,18 @@ export default function RewardsScreen() {
       })
       .eq('id', codeRow.id)
       .select();
-
-    
-    console.log('updateCode response:',  updatedCodeRow, 'Error:', updateCodeError);
-
-    if (updateCodeError) {
-      console.error('Error updating reward code:', updateCodeError);
+      
+    if (updateError || !updated?.length) {
+      console.error('Error updating reward code:', updateErr);
       return Alert.alert('Error', 'Could not claim your code. Try again.');
     }
-    if (!updatedCodeRow || updatedCodeRow.length === 0) {
-      console.warn('No rows were updated—check codeRow.id and RLS policies');
-      return Alert.alert('Error', 'Claim failed; please try again.');
-    }
 
+    // store the redemption code for the modal
+    setRedemptionCode(codeRow.code);
+      
     // Inserts a new customer_rewards row
-    const { error: claimError } = await supabase
+  // console.log('Inserting customer_rewards row for reward_id=', selectedReward.id);
+    const { error: claimErr } = await supabase
       .from('customer_rewards')
       .insert([{
         customer_id: authUser.id,
@@ -202,8 +178,8 @@ export default function RewardsScreen() {
         reward_code_id: codeRow.id
       }]);
 
-    if (claimError) {
-      console.error('Claim error:', claimError);
+    if (claimErr) {
+      console.error('Claim error:', claimErr);
       return Alert.alert('Error', 'Could not record your claim. Try again.');
     }
 
@@ -291,7 +267,7 @@ export default function RewardsScreen() {
     );
   };
 
-  if (loadingBusiness || !restaurant) {
+  if (loading || !restaurant) {
     return <Text style={{ flex: 1, alignSelf: 'center', paddingTop: '50%' }}>Loading restaurant info…</Text>;
   }
 
