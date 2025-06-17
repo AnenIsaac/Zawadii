@@ -66,13 +66,13 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     // Ensure globalMoneyPointsRatio is loaded before proceeding
-    if (tin && receiptData && amountSpent && globalMoneyPointsRatio !== null) {
+    if (tin && receiptData && receiptData.totals && globalMoneyPointsRatio !== null) { // Ensure receiptData.totals exists
       const fetchDetailsAndCalculatePoints = async () => {
         setIsLoading(true);
         try {
           const { data: business, error: businessError } = await supabase
             .from('businesses')
-            .select('id, name') // CORRECTED: money_points_ratio is not in businesses table
+            .select('id, name, points_conversion') // MODIFIED: Added points_conversion
             .eq('tin', tin)
             .single();
 
@@ -93,20 +93,26 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
             return;
           }
 
-          setBusinessName(business.name); // CORRECTED: Use business.name
+          setBusinessName(business.name);
           setBusinessId(business.id);
 
-          const numericAmountSpent = parseAmount(amountSpent);
+          // MODIFIED: Use total_incl_tax from receiptData for amount spent
+          const numericAmountSpent = parseAmount(receiptData.totals.total_incl_of_tax);
+          const businessPointsConversion = parseFloat(business.points_conversion);
+          const globalConversionRate = parseFloat(globalMoneyPointsRatio);
 
-          // CORRECTED: Use globalMoneyPointsRatio from state
-          if (globalMoneyPointsRatio > 0 && numericAmountSpent > 0) {
-            const calculatedPoints = numericAmountSpent * (globalMoneyPointsRatio / 100);
+          if (business.points_conversion !== null && !isNaN(businessPointsConversion) && businessPointsConversion > 0 &&
+              globalMoneyPointsRatio !== null && !isNaN(globalConversionRate) && globalConversionRate > 0 &&
+              numericAmountSpent > 0) {
+            
+            // MODIFIED: globalConversionRate is now used directly as a ratio
+            const calculatedPoints = numericAmountSpent * (businessPointsConversion / 100) * globalConversionRate;
             setPointsToAward(Math.floor(calculatedPoints));
-            console.log(`Points calculation: ${numericAmountSpent} * (${globalMoneyPointsRatio} / 100) = ${calculatedPoints}`);
+            console.log(`Points calculation: ${numericAmountSpent} * (${businessPointsConversion}/100) * ${globalConversionRate} = ${calculatedPoints}`);
           } else {
             setPointsToAward(0);
-            // CORRECTED: Use globalMoneyPointsRatio in log
-            console.log('No points awarded. Global ratio or amount spent might be zero or invalid.', globalMoneyPointsRatio, numericAmountSpent);
+            console.log('No points awarded. Business points conversion, global ratio, or amount spent might be zero or invalid.', 
+              { numericAmountSpent, businessPointsConversion, globalConversionRate, businessRaw: business.points_conversion, globalRaw: globalMoneyPointsRatio });
           }
 
         } catch (error) {
@@ -120,14 +126,14 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         }
       };
       fetchDetailsAndCalculatePoints();
-    } else if (globalMoneyPointsRatio === null && tin && receiptData && amountSpent) {
+    } else if (globalMoneyPointsRatio === null && tin && receiptData && receiptData.totals && amountSpent) { // Ensure receiptData.totals exists
       // Optional: Indicate that settings are still loading if other data is present
       console.log("Waiting for global settings to calculate points...");
       // Consider setting isLoading to true or showing a message to the user
     }
-  }, [tin, receiptData, amountSpent, globalMoneyPointsRatio, supabase]); // CORRECTED: Added globalMoneyPointsRatio to dependency array
+  }, [tin, receiptData, globalMoneyPointsRatio, supabase]); // MODIFIED: amountSpent removed from deps if not directly used, receiptData is the source of truth for amount
 
-  if (!receiptData || !tin || !amountSpent) {
+  if (!receiptData || !tin || !receiptData.totals) { // MODIFIED: check receiptData.totals
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Invalid receipt data provided.</Text>
@@ -174,12 +180,14 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         interaction_id: interaction.id,
         customer_id: userId,
         receipt_no: receiptData.receipt_info.receipt_no,
+        tin_num: tin, 
         z_number: receiptData.receipt_info.z_number,
         date: receiptData.receipt_info.date,
         time: receiptData.receipt_info.time,
         total_excl_tax: parseAmount(receiptData.totals.total_excl_of_tax),
         total_tax: parseAmount(receiptData.totals.total_tax),
         total_incl_tax: parseAmount(receiptData.totals.total_incl_of_tax),
+        points: pointsToAward, // MODIFIED: Save calculated pointsToAward to the points column
         verification_code: receiptData.verification?.code,
         source_url: scannedUrl,
       };
@@ -247,7 +255,13 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
 
     } catch (error) {
       console.error('Error saving receipt and awarding points:', error);
-      Alert.alert('Save Error', `An error occurred: ${error.message || 'Could not save receipt.'}`);
+      // Check for Supabase unique constraint violation (code 23505)
+      // and if the message indicates it's related to the receipt number.
+      if (error && error.code === '23505' && error.message && error.message.toLowerCase().includes('receipt_no')) {
+        Alert.alert('Receipt Already Scanned', 'It looks like you have already scanned this receipt. It cannot be submitted again.');
+      } else {
+        Alert.alert('Save Error', `An error occurred: ${error.message || 'Could not save receipt.'}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -275,7 +289,8 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
 
         {/* Business Information */}
         <View style={styles.section}>
-          <Text style={styles.businessName}>{receiptData.company_info?.name || businessName || 'Business Name N/A'}</Text>
+          {/* MODIFIED: Prioritize businessName from state (fetched via TIN) */}
+          <Text style={styles.businessName}>{businessName || receiptData.company_info?.name || 'Business Name N/A'}</Text>
           {receiptData.company_info?.address && <Text style={styles.detailTextLeft}>{receiptData.company_info.address}</Text>}
           <Text style={styles.detailTextLeft}>MOBILE: {displayValue(receiptData.company_info?.mobile)}</Text>
           <Text style={styles.detailTextLeft}>TIN: {displayValue(receiptData.company_info?.tin)}</Text>
@@ -342,7 +357,7 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
           </View>
           <View style={[styles.totalRow, styles.grandTotalRow]}>
             <Text style={[styles.totalLabel, styles.grandTotalLabel]}>TOTAL INCL OF TAX:</Text>
-            <Text style={[styles.totalValue, styles.grandTotalValue]}>{receiptData.totals?.total_incl_of_tax || '0.00'}</Text>
+            <Text style={[styles.totalValue, styles.grandTotalValue]}>{receiptData.totals?.total_incl_tax || '0.00'}</Text>
           </View>
         </View>
 

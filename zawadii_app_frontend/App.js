@@ -17,6 +17,7 @@ import PasswordChangeSuccess from './screens/user/PasswordChangeSuccess';
 import ResetPassword from './screens/auth/ResetPassword';
 
 import PointsHistoryScreen from './screens/user/PointsHistoryScreen';
+import ReceiptHistoryScreen from './screens/user/ReceiptHistoryScreen'; // Import the new screen
 
 import NotificationsScreen from './screens/main/NotificationsScreen';
 import EnterCode from './screens/main/EnterCode';
@@ -48,6 +49,15 @@ export default function App() {
         <Stack.Screen name="PasswordChangeSuccess" component={PasswordChangeSuccess} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
         <Stack.Screen name="PointsHistoryScreen" component={PointsHistoryScreen} />
+        <Stack.Screen 
+          name="ReceiptHistoryScreen" 
+          component={ReceiptHistoryScreen} 
+          options={{ 
+            headerShown: true, 
+            title: 'Receipt History' 
+            // headerBackTitleVisible: false, // Optional: hide back button text if needed
+          }} 
+        />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
         <Stack.Screen name="EnterCode" component={EnterCode} />
         <Stack.Screen name="InfoScreen" component={InfoScreen} />

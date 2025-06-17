@@ -52,6 +52,17 @@ const SimpleSidebar = ({ visible, onClose, navigation }) => {
                 <MaterialIcons name="list" size={24} color="#333" />
                 <Text style={styles.menuItemText}>Points History</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  onClose();
+                  navigation.navigate('ReceiptHistoryScreen'); // Added this navigation
+                }}
+              >
+                <Ionicons name="receipt-outline" size={24} color="#333" />
+                <Text style={styles.menuItemText}>Receipt History</Text>
+              </TouchableOpacity>
             </View>
           </SafeAreaView>
         </View>
