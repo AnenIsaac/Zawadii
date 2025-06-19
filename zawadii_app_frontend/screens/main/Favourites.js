@@ -63,9 +63,9 @@ export default function Favourites() {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        {/* <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>My Favourites</Text>
         <View style={styles.headerRightSpace} />
       </View>

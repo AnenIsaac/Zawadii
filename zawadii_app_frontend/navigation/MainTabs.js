@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/main/HomeScreen';
 import RewardsScreen from '../screens/main/RewardsScreen';
 import ScanScreen from '../screens/main/ScanScreen';
-import Favourites from '../screens/main/Favourites';
+import SearchScreen from '../screens/main/SearchScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -27,8 +27,8 @@ const MainTabs = () => {
             iconName = focused ? 'gift' : 'gift-outline';
           } else if (route.name === 'Scan') {
             iconName = focused ? 'scan' : 'scan-outline';
-          } else if (route.name === 'Favourites') {
-            iconName = focused ? 'heart' : 'heart-outline';
+          } else if (route.name === 'Search') {
+            iconName = focused ? 'search' : 'search-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -43,7 +43,7 @@ const MainTabs = () => {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Rewards" component={RewardsScreen} />
       <Tab.Screen name="Scan" component={ScanScreen} />
-      <Tab.Screen name="Favourites" component={Favourites} />
+      <Tab.Screen name="Search" component={SearchScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

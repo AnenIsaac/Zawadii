@@ -63,6 +63,17 @@ const SimpleSidebar = ({ visible, onClose, navigation }) => {
                 <Ionicons name="receipt-outline" size={24} color="#333" />
                 <Text style={styles.menuItemText}>Receipt History</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  onClose();
+                  navigation.navigate('Favourites');
+                }}
+              >
+                <Ionicons name="heart-outline" size={24} color="#333" />
+                <Text style={styles.menuItemText}>Favourites</Text>
+              </TouchableOpacity>
             </View>
           </SafeAreaView>
         </View>

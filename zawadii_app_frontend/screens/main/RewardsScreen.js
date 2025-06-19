@@ -73,7 +73,6 @@ export default function RewardsScreen() {
           phone_number,
           email,
           instagram,
-          facebook,
           tiktok,
           points_conversion,
           created_at

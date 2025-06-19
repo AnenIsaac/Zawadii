@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'; // Added useRef
+import React, { useState, useRef, useEffect } from 'react'; // Added useEffect
 import SimpleSidebar from '../../components/SimpleSidebar'; 
 import { 
   View, 
@@ -14,14 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
-// Sample data for promotions - replace with your actual data source
-const promotionsData = [
-  { id: 'promo1', image: require('../../assets/happy-man.jpeg') },
-  { id: 'promo2', image: require('../../assets/offer2.jpg') },
-  { id: 'promo3', image: require('../../assets/happy-man.jpeg') }, // Example: reusing image
-  { id: 'promo4', image: require('../../assets/offer2.jpg') },   // Example: reusing image
-];
+import { getValidPromotions } from '../../utils/getValidPromotions';
 
 // Constants for promotion carousel
 const PROMOTION_CARD_WIDTH = 300; // from styles.promotionCard.width
@@ -32,13 +25,30 @@ const PROMOTION_SNAP_INTERVAL = PROMOTION_CARD_WIDTH + PROMOTION_CARD_MARGIN_LEF
 // const HomeScreen = ({ navigation, showSidebar }) => {
 const HomeScreen = ({ navigation }) => {
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activePromotionIndex, setActivePromotionIndex] = useState(0); // State for active promotion
-  const promotionsScrollViewRef = useRef(null); // Ref for promotions ScrollView
+  const [activePromotionIndex, setActivePromotionIndex] = useState(0);
+  const promotionsScrollViewRef = useRef(null);
+  const [promotionsData, setPromotionsData] = useState([]);
+  const [loadingPromotions, setLoadingPromotions] = useState(true);
+
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      setLoadingPromotions(true);
+      try {
+        const promos = await getValidPromotions(4);
+        setPromotionsData(promos || []);
+      } catch (e) {
+        setPromotionsData([]);
+        console.error('Failed to fetch promotions:', e);
+      } finally {
+        setLoadingPromotions(false);
+      }
+    };
+    fetchPromotions();
+  }, []);
 
   const handlePromotionScroll = (event) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
-    const currentIndex = Math.floor(scrollPosition / PROMOTION_SNAP_INTERVAL + 0.5); // Robust rounding
-
+    const currentIndex = Math.floor(scrollPosition / PROMOTION_SNAP_INTERVAL + 0.5);
     if (currentIndex >= 0 && currentIndex < promotionsData.length) {
       setActivePromotionIndex(currentIndex);
     }
@@ -72,31 +82,47 @@ const HomeScreen = ({ navigation }) => {
       >
         <ScrollView style={styles.mainScrollView}>
           {/* Promotions Carousel */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.promotionsContainer}
-            ref={promotionsScrollViewRef}
-            snapToInterval={PROMOTION_SNAP_INTERVAL}
-            decelerationRate="fast"
-            onMomentumScrollEnd={handlePromotionScroll}
-            contentContainerStyle={{ paddingRight: PROMOTION_CARD_MARGIN_LEFT }} // Ensures last item can snap correctly
-          >
-            {promotionsData.map((promotion) => (
-              <View
-                key={promotion.id}
-                style={styles.promotionCard} // Assumes marginLeft is in styles.promotionCard
-              >
-                <Image
-                  source={promotion.image}
-                  style={styles.promotionImage}
-                />
-              </View>
-            ))}
-          </ScrollView>
+          {loadingPromotions ? (
+    <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
+      <Text>Loading promotions...</Text>
+    </View>
+  ) : promotionsData.length === 0 ? (
+    <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
+      <Text>No promotions available.</Text>
+    </View>
+  ) : (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.promotionsContainer}
+      ref={promotionsScrollViewRef}
+      snapToInterval={PROMOTION_SNAP_INTERVAL}
+      decelerationRate="fast"
+      onMomentumScrollEnd={handlePromotionScroll}
+      contentContainerStyle={{ paddingRight: PROMOTION_CARD_MARGIN_LEFT }}
+    >
+      {promotionsData.map((promotion) => (
+        <View
+          key={promotion.id}
+          style={styles.promotionCard}
+        >
+          {promotion.image_url ? (
+            <Image
+              source={{ uri: promotion.image_url }}
+              style={styles.promotionImage}
+            />
+          ) : (
+            <View style={[styles.promotionImage, {backgroundColor:'#eee', justifyContent:'center', alignItems:'center'}]}>
+              <Text>No Image</Text>
+            </View>
+          )}
+        </View>
+      ))}
+    </ScrollView>
+  )}
 
           {/* Carousel Indicators */}
-          {promotionsData.length > 1 && ( // Only show indicators if there's more than one promotion
+          {promotionsData.length > 1 && (
             <View style={styles.indicatorsContainer}>
               {promotionsData.map((_, index) => (
                 <View

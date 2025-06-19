@@ -18,6 +18,7 @@ import ResetPassword from './screens/auth/ResetPassword';
 
 import PointsHistoryScreen from './screens/user/PointsHistoryScreen';
 import ReceiptHistoryScreen from './screens/user/ReceiptHistoryScreen'; // Import the new screen
+import Favourites from './screens/main/Favourites';
 
 import NotificationsScreen from './screens/main/NotificationsScreen';
 import EnterCode from './screens/main/EnterCode';
@@ -48,14 +49,14 @@ export default function App() {
         <Stack.Screen name="PasswordChangeFailure" component={PasswordChangeFailure} />
         <Stack.Screen name="PasswordChangeSuccess" component={PasswordChangeSuccess} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
-        <Stack.Screen name="PointsHistoryScreen" component={PointsHistoryScreen} />
+        <Stack.Screen name="PointsHistoryScreen" component={PointsHistoryScreen} options={{ headerShown: false, title: 'Points History', headerLeft: () => null }} />
         <Stack.Screen 
           name="ReceiptHistoryScreen" 
           component={ReceiptHistoryScreen} 
           options={{ 
             headerShown: true, 
-            title: 'Receipt History' 
-            // headerBackTitleVisible: false, // Optional: hide back button text if needed
+            title: 'Receipt History',
+            headerLeft: () => null // Remove back button
           }} 
         />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
@@ -75,6 +76,8 @@ export default function App() {
           }} 
         />
         
+        <Stack.Screen name="Favourites" component={Favourites} options={{ headerShown: false, title: 'Favourites', headerLeft: () => null }} />
+
         {/* <Stack.Screen name="PointsEarnedScreen" component={PointsEarnedScreen} /> */}
 
       </Stack.Navigator>

@@ -103,11 +103,11 @@ const PointsHistoryScreen = ({ navigation }) => {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}
+        {/* <TouchableOpacity style={styles.backButton}
         onPress={() => navigation.navigate('Main', { screen: 'Rewards' })} // Navigate to HomeScreen
         >
           <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.headerTitle}>POINTS HISTORY</Text>
         <View style={{ width: 24 }} />
       </View>

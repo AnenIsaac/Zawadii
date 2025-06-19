@@ -13,7 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomNav from '../../components/BottomNav';
+import { supabase } from '../../supabaseClient';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -21,122 +21,55 @@ const SearchScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRestaurants, setFilteredRestaurants] = useState([]);
   const [activeLetterIndex, setActiveLetterIndex] = useState(0);
+  const [allBusinesses, setAllBusinesses] = useState([]);
+  const [recentBusinesses, setRecentBusinesses] = useState([]);
   const sectionListRef = useRef(null);
   const windowHeight = Dimensions.get('window').height;
 
-  // Popular categories for horizontal scrolling
-  const popularCategories = [
-    { id: '1', name: 'Burger 53' },
-    { id: '2', name: 'Shawarma 27' },
-    { id: '3', name: 'Shishi Food' },
-    { id: '4', name: 'Savvy Plates'},
-    { id: '5', name: 'Pizzeria' },
-    { id: '6', name: 'Healthy Bowl' },
-  ];
+  // Fetch all businesses from Supabase
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('id, name, location_description, logo_url')
+        .order('name', { ascending: true });
+      if (!error && data) {
+        setAllBusinesses(data);
+        setFilteredRestaurants(groupBusinesses(data));
+        // For demo, set recent to first 4
+        setRecentBusinesses(data.slice(0, 4));
+      }
+    };
+    fetchBusinesses();
+  }, []);
 
-  // Restaurant data organized alphabetically
-  const generateAlphabeticalRestaurants = () => {
-    // Sample restaurant data
-    const allRestaurants = [
-      { name: 'Akemi Revolving Restaurant', address: '21st Floor, Golden Jubilee Tower, Oha Street' },
-      { name: 'Afternoon Delight', address: '45 Main Street, Downtown' },
-      { name: 'Azzurro Italian', address: '27 Marina Avenue' },
-      { name: 'Bangkok Kitchen', address: '12 Eastwood Mall' },
-      { name: 'Blue Lagoon', address: '100 Beach Road' },
-      { name: 'Bistro Gardens', address: '78 Park Lane' },
-      { name: 'Cafe Milano', address: '56 Coffee Street' },
-      { name: 'Curry House', address: '34 Spice Road' },
-      { name: 'Canton Palace', address: '88 China Town' },
-      { name: 'Deli Express', address: '23 Fast Lane' },
-      { name: 'Dolce Vita', address: '90 Sweet Street' },
-      { name: 'Dragon Wok', address: '45 Eastern Avenue' },
-      { name: 'Eat Fresh', address: '67 Veggies Road' },
-      { name: 'El Mariachi', address: '123 Mexico Street' },
-      { name: 'Fisherman\'s Wharf', address: '32 Harbor Road' },
-      { name: 'French Connection', address: '76 Paris Avenue' },
-      { name: 'Ginger & Spice', address: '89 Flavor Street' },
-      { name: 'Golden Dragon', address: '56 Lucky Road' },
-      { name: 'Hungry Bear', address: '21 Forest Avenue' },
-      { name: 'Hibachi Grill', address: '44 Flame Street' },
-      { name: 'Ice Cream Palace', address: '33 Frozen Lane' },
-      { name: 'Island Treats', address: '22 Paradise Road' },
-      { name: 'Jade Garden', address: '11 Green Street' },
-      { name: 'Java Joe\'s', address: '55 Coffee Bean Road' },
-      { name: 'King\'s Table', address: '99 Royal Avenue' },
-      { name: 'Kebab House', address: '77 Grill Street' },
-      { name: 'Lemon Tree', address: '66 Citrus Lane' },
-      { name: 'La Trattoria', address: '44 Pasta Road' },
-      { name: 'Mango Grove', address: '33 Tropical Avenue' },
-      { name: 'Midnight Diner', address: '24/7 Night Street' },
-      { name: 'Noodle Bar', address: '43 Asian Alley' },
-      { name: 'New York Deli', address: '87 Manhattan Road' },
-      { name: 'Ocean Fresh', address: '22 Sea View' },
-      { name: 'Olive Garden', address: '55 Mediterranean Avenue' },
-      { name: 'Pepper House', address: '66 Spicy Lane' },
-      { name: 'Pasta Paradise', address: '77 Italian Street' },
-      { name: 'Quickbite', address: '33 Fast Food Lane' },
-      { name: 'Quaint Cafe', address: '22 Quiet Corner' },
-      { name: 'Rustic Table', address: '44 Country Road' },
-      { name: 'Riverside Grill', address: '55 Water Street' },
-      { name: 'Sushi Express', address: '66 Japan Avenue' },
-      { name: 'Spice Garden', address: '77 India Street' },
-      { name: 'Taco Town', address: '88 Mexico Road' },
-      { name: 'Thai Spice', address: '99 Bangkok Lane' },
-      { name: 'Urban Bistro', address: '11 Downtown Avenue' },
-      { name: 'Umami House', address: '22 Flavor Street' },
-      { name: 'Vineyard Restaurant', address: '33 Wine Road' },
-      { name: 'Village Kitchen', address: '44 Rural Lane' },
-      { name: 'Wasabi Sushi', address: '55 Japan Street' },
-      { name: 'Wok & Roll', address: '66 China Road' },
-      { name: 'Xpress Diner', address: '77 Quick Lane' },
-      { name: 'Xotic Flavors', address: '88 Unique Street' },
-      { name: 'Yummy Corner', address: '99 Tasty Avenue' },
-      { name: 'Yogurt Stop', address: '11 Dessert Road' },
-      { name: 'Zen Garden', address: '22 Peace Street' },
-      { name: 'Zesty Bites', address: '33 Lemon Lane' },
-    ];
-
-    // Group restaurants alphabetically
-    const groupedRestaurants = ALPHABET.map(letter => {
-      return {
-        title: letter,
-        data: allRestaurants.filter(restaurant => 
-          restaurant.name.charAt(0).toUpperCase() === letter
-        )
-      };
-    }).filter(section => section.data.length > 0);
-
-    return groupedRestaurants;
+  // Group businesses alphabetically
+  const groupBusinesses = (businesses) => {
+    const grouped = ALPHABET.map(letter => ({
+      title: letter,
+      data: businesses.filter(biz => biz.name.charAt(0).toUpperCase() === letter)
+    })).filter(section => section.data.length > 0);
+    return grouped;
   };
 
-  const restaurantSections = generateAlphabeticalRestaurants();
-
-  // Filter restaurants based on search query
+  // Filter businesses based on search
   useEffect(() => {
     if (searchQuery.trim() === '') {
-      setFilteredRestaurants(restaurantSections);
+      setFilteredRestaurants(groupBusinesses(allBusinesses));
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = restaurantSections
-        .map(section => {
-          return {
-            title: section.title,
-            data: section.data.filter(restaurant => 
-              restaurant.name.toLowerCase().includes(query) || 
-              restaurant.address.toLowerCase().includes(query)
-            )
-          };
-        })
-        .filter(section => section.data.length > 0);
-      
-      setFilteredRestaurants(filtered);
+      const filtered = allBusinesses.filter(biz =>
+        biz.name.toLowerCase().includes(query) ||
+        (biz.location_description && biz.location_description.toLowerCase().includes(query))
+      );
+      setFilteredRestaurants(groupBusinesses(filtered));
     }
-  }, [searchQuery]);
+  }, [searchQuery, allBusinesses]);
 
   // Initialize filtered restaurants on component mount
   useEffect(() => {
-    setFilteredRestaurants(restaurantSections);
-  }, []);
+    setFilteredRestaurants(groupBusinesses(allBusinesses));
+  }, [allBusinesses]);
 
   // Scroll to section when alphabet letter is pressed
   const scrollToSection = (index) => {
@@ -183,18 +116,17 @@ const SearchScreen = ({ navigation }) => {
   const renderRestaurantItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.restaurantItem}
-      onPress={() => navigation.navigate('RestaurantDetails', { restaurantName: item.name })}
+      onPress={() => navigation.navigate('RestaurantDetails', { restaurantId: item.id })}
     >
       <View style={styles.restaurantImageContainer}>
         <Image 
-          // source={require('../assets/default-restaurant.png')}
+          source={item.logo ? { uri: item.logo } : require('../../assets/logo.png')}
           style={styles.restaurantImage}
-          // defaultSource={require('../assets/default-restaurant.png')}
         />
       </View>
       <View style={styles.restaurantInfo}>
         <Text style={styles.restaurantName}>{item.name}</Text>
-        <Text style={styles.restaurantAddress}>{item.address}</Text>
+        <Text style={styles.restaurantAddress}>{item.location_description}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -205,6 +137,9 @@ const SearchScreen = ({ navigation }) => {
       <Text style={styles.sectionHeaderText}>{section.title}</Text>
     </View>
   );
+
+  // Limit to 4 most recent
+  const recentRestaurants = recentBusinesses.slice(0, 4);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -220,20 +155,26 @@ const SearchScreen = ({ navigation }) => {
         />
       </View>
 
-      {/* Categories horizontal scroll */}
-      <View style={styles.categoriesContainer}>
+      {/* Recent (Most Visited)
+      <View style={styles.topSection}>
+        <Text style={styles.sectionTitle}>Recently Visited</Text>
         <FlatList
+          data={recentRestaurants}
           horizontal
-          showsHorizontalScrollIndicator={false}
-          data={popularCategories}
-          renderItem={({ item }) => <CategoryItem item={item} />}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.categoriesList}
+          renderItem={({ item }) => (
+            <View style={styles.recentCard}>
+              <Image source={{ uri: item.logo }} style={styles.recentImage} />
+              <Text style={styles.recentName}>{item.name}</Text>
+            </View>
+          )}
+          showsHorizontalScrollIndicator={false}
+          style={styles.recentList}
         />
-      </View>
+      </View> */}
 
-      {/* Main content with alphabetical sections */}
-      <View style={styles.mainContent}>
+      {/* All restaurants */}
+      <View style={{ flex: 1 }}>
         <SectionList
           ref={sectionListRef}
           sections={filteredRestaurants}
@@ -250,10 +191,10 @@ const SearchScreen = ({ navigation }) => {
         />
 
         {/* Alphabetical index */}
-        <View style={styles.alphabetIndex}>
-          {filteredRestaurants.map((section, index) => (
+        <View style={styles.alphaIndexContainer}>
+          {ALPHABET.map((letter, index) => (
             <TouchableOpacity
-              key={section.title}
+              key={letter}
               onPress={() => scrollToSection(index)}
               style={styles.letterContainer}
             >
@@ -263,15 +204,12 @@ const SearchScreen = ({ navigation }) => {
                   activeLetterIndex === index && styles.activeIndexLetter
                 ]}
               >
-                {section.title}
+                {letter}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
-
-      {/* Bottom Navigation */}
-      <BottomNav/>
     </SafeAreaView>
   );
 };
@@ -300,42 +238,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333333',
   },
-  categoriesContainer: {
-    height: 110,
-    paddingVertical: 8,
-    backgroundColor: '#F8F8F8',
+  topSection: {
+    paddingTop: 10,
+    paddingBottom: 5,
+    backgroundColor: '#fff',
   },
-  categoriesList: {
-    paddingHorizontal: 12,
+  sectionTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 16,
+    marginVertical: 8,
   },
-  categoryItem: {
+  recentList: {
+    paddingLeft: 10,
+    minHeight: 110,
+  },
+  recentCard: {
     width: 80,
-    marginHorizontal: 6,
     alignItems: 'center',
+    marginRight: 12,
   },
-  categoryImageContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
-    backgroundColor: '#EEEEEE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+  recentImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#eee',
   },
-  categoryImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  categoryName: {
+  recentName: {
     fontSize: 12,
-    color: '#333333',
-    textAlign: 'center',
     marginTop: 4,
+    textAlign: 'center',
   },
-  mainContent: {
+  allSection: {
     flex: 1,
-    flexDirection: 'row',
+    marginTop: 0,
   },
   sectionListContent: {
     paddingBottom: 20,
@@ -383,11 +319,16 @@ const styles = StyleSheet.create({
     color: '#777777',
     marginTop: 2,
   },
-  alphabetIndex: {
+  alphaIndexContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 100, // adjust as needed
+    bottom: 0,
     width: 24,
-    backgroundColor: '#F8F8F8',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
   },
   letterContainer: {
     height: 18,
@@ -404,29 +345,10 @@ const styles = StyleSheet.create({
     color: '#FF8C00',
     fontWeight: 'bold',
   },
-  bottomNav: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    backgroundColor: '#FFFFFF',
-    height: 60,
-  },
-  navButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerNavButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  squareButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#0047AB',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+  alphaIndexLetter: {
+    fontSize: 12,
+    color: '#FF8C00',
+    paddingVertical: 2,
   },
 });
 
