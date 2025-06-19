@@ -85,11 +85,12 @@ const isValidPhoneNumber = (phone) => {
     setActiveTab(tab);
   };
 
-  // Login handlers
+  // Login handlers (trim start/end)
   const handleLoginChange = (field, value) => {
+    const trimmed = value.trim();
     setLoginData({
       ...loginData,
-      [field]: value
+      [field]: trimmed
     });
     
     // Reset wrong password state if user is typing in password field
@@ -145,17 +146,18 @@ const isValidPhoneNumber = (phone) => {
     navigation.navigate('ForgotPassword');
   };
 
-  // Signup handlers
+  // Signup handlers (trim start/end)
   const handleSignupChange = (field, value) => {
-  setSignupData({
-    ...signupData,
-    [field]: value
-  });
+    const trimmed = value.trim();
+    setSignupData({
+      ...signupData,
+      [field]: trimmed
+    });
 
-  if (field === 'password') {
-    setIsPasswordStrong(isStrongPassword(value));
-  }
-};
+    if (field === 'password') {
+      setIsPasswordStrong(isStrongPassword(value));
+    }
+  };
 
   const toggleSignupPasswordVisibility = () => {
     setShowSignupPassword(!showSignupPassword);
