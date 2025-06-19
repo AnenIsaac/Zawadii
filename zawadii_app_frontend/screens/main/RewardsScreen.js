@@ -24,9 +24,10 @@ export default function RewardsScreen() {
   
   // Data states for modals
   const [selectedReward, setSelectedReward] = useState(null);
-  const [modalType, setModalType] = useState(null); // 'buy' or 'claim'
+  const [modalType, setModalType] = useState(null); // 'buy' or 'unavailable'
   const [selectedDeal, setSelectedDeal] = useState(null);
-  const [redemptionCode, setRedemptionCode] = useState('CQ23SDF232');
+  const [redemptionCode, setRedemptionCode] = useState('');
+  const [boughtCodeId, setBoughtCodeId] = useState(null);
   
   const navigation = useNavigation();
   
@@ -47,7 +48,7 @@ export default function RewardsScreen() {
           .from('businesses')
           .select(`
             id, name, description, logo_url, cover_image_url,
-            phone_number, email, instagram, facebook, tiktok,
+            phone_number, email, instagram, whatsapp, tiktok,
             points_conversion, created_at
           `)
           .eq('id', BUSINESS_ID)
@@ -113,16 +114,16 @@ export default function RewardsScreen() {
   // Handler for when a reward item is pressed
   const handleRewardPress = (reward) => {
     setSelectedReward(reward);
-    setModalType(reward.is_active ? 'claim' : 'buy');
+    setModalType(reward.is_active ? 'buy' : 'unavailable');
     setPurchaseModalVisible(true);
   };
 
-  // Handler for claim confirmation
-  const handleClaimConfirm = async () => {
+  // Handler for buy confirmation
+  const handleBuyConfirm = async () => {
     setPurchaseModalVisible(false);
 
     if(!authUser) {
-      return Alert.alert('Error', 'You must be signed in to claim rewards.');
+      return Alert.alert('Error', 'You must be signed in to buy rewards.');
     }
 
     // Takes one unused code for the reward
@@ -145,42 +146,48 @@ export default function RewardsScreen() {
     return Alert.alert('Sold Out', 'No more codes are available for this reward.');
   }
 
-    // Marks code as claimed
-  console.log('Marking code as claimed, id=', codeRow.id);
+    // Marks code as bought
+  console.log('Marking code as bought, id=', codeRow.id);
     const { data: updated, error: updateError } = await supabase
       .from('reward_codes')
       .update({
         customer_id: authUser.id,
-        status: 'claimed',
+        status: 'bought',
         bought_at: new Date().toISOString()
       })
       .eq('id', codeRow.id)
       .select();
       
     if (updateError || !updated?.length) {
-      console.error('Error updating reward code:', updateErr);
-      return Alert.alert('Error', 'Could not claim your code. Try again.');
+      console.error('Error updating reward code:', updateError);
+      return Alert.alert('Error', 'Could not buy your code. Try again.');
     }
 
     // store the redemption code for the modal
     setRedemptionCode(codeRow.code);
+    setBoughtCodeId(codeRow.id);
       
     // Inserts a new customer_rewards row
-  // console.log('Inserting customer_rewards row for reward_id=', selectedReward.id);
-    const { error: claimErr } = await supabase
+    const { data: crRows, error: buyErr } = await supabase
       .from('customer_rewards')
       .insert([{
         customer_id: authUser.id,
         reward_id: selectedReward.id,
         business_id: BUSINESS_ID,
         points_spent: selectedReward.points_required,
-        status: 'claimed',
+        status: 'bought',
         reward_code_id: codeRow.id
-      }]);
+      }])
+      .select();
 
-    if (claimErr) {
-      console.error('Claim error:', claimErr);
-      return Alert.alert('Error', 'Could not record your claim. Try again.');
+
+
+      console.log('🆕 customer_rewards inserted →', buyErr, crRows);
+
+
+    if (buyErr || !crRows?.length) {
+      console.error('Buy error or zero rows:', buyErr, crRows);
+      return Alert.alert('Error', 'Could not record your buy. Try again.');
     }
 
     // 4) show the “Redeem Confirm” modal
@@ -188,8 +195,42 @@ export default function RewardsScreen() {
   };
 
   // Handler for showing redemption code
-  const handleShowRedemptionCode = () => {
+  const handleShowRedemptionCode = async () => {
     setRedeemConfirmModalVisible(false);
+
+    if (!boughtCodeId) {
+      console.warn('No code to redeem');
+      return;
+    }
+
+    // mark it redeemed
+    const { data: updatedCode, error: codeErr } = await supabase
+      .from('reward_codes')
+      .update({
+        status: 'redeemed',
+        redeemed_at: new Date().toISOString()
+      })
+      .eq('id', boughtCodeId);
+
+    if (codeErr) {
+      console.error('Error marking code redeemed:', error);
+    }
+
+    // Update the corresponding customer_rewards row
+    const { data: updatedCR, error: crErr } = await supabase
+      .from('customer_rewards')
+      .update({
+        status: 'redeemed',
+        redeemed_at: new Date().toISOString()
+      })
+      .eq('reward_code_id', boughtCodeId)
+      .select();
+
+    if (crErr) {
+      console.error('Failed updating customer_rewards:', crErr);
+      return Alert.alert('Error', 'Could not mark your reward as redeemed.');
+    }
+
     setRedemptionCodeModalVisible(true);
   };
 
@@ -199,18 +240,25 @@ export default function RewardsScreen() {
     const urlMap = {
       instagram: restaurant.instagram,
       tiktok: restaurant.tiktok,
-      facebook: restaurant.facebook,
+      whatsapp: restaurant.whatsapp,
     };
 
-    const url = urlMap[platform];
-    if (url) {
-      Linking.openURL(url).catch((err) => {
-        console.error('Error opening URL:', err);
-        Alert.alert('Error', 'Could not open link.');
-      });
-    } else {
-      Alert.alert('Unavailable', `No ${platform} link provided.`);
+    const raw = urlMap[platform];
+    if (!raw) {
+      return Alert.alert('Unavailable', `No ${platform} link provided.`);
     }
+
+    let link = raw;
+    if (platform === 'whatsapp') {
+      // strip any non‑digits then build wa.me url
+      const phone = raw.replace(/\D/g, '');
+      link = `https://wa.me/${phone}`;
+    }
+
+    Linking.openURL(link).catch((err) => {
+      console.error('Error opening URL:', err);
+      Alert.alert('Error', 'Could not open link.');
+    });
   };
 
   // Welcome/Info Modal Component - Fixed the modalVisible prop issue
@@ -255,8 +303,8 @@ export default function RewardsScreen() {
                 <Ionicons name="logo-tiktok" size={24} color="#000" />
               </TouchableOpacity>
             )}
-            {restaurant.tiktok && (
-              <TouchableOpacity onPress={() => handleSocialMedia('facebook')}>
+            {restaurant.whatsapp && (
+              <TouchableOpacity onPress={() => handleSocialMedia('whatsapp')}>
                 <Ionicons name="logo-whatsapp" size={24} color="#000" />
               </TouchableOpacity>
             )}
@@ -333,12 +381,12 @@ export default function RewardsScreen() {
                 />
               </TouchableOpacity>
             )}
-            {restaurant.facebook && (
+            {restaurant.whatsapp && (
               <TouchableOpacity 
                 style={styles.socialButton}
-                onPress={() => handleSocialMedia('facebook')}
+                onPress={() => handleSocialMedia('whatsapp')}
               >
-                <Ionicons name='logo-facebook' size={18} color="white" 
+                <Ionicons name='logo-whatsapp' size={18} color="white" 
                 />
               </TouchableOpacity>
             )}
@@ -367,8 +415,12 @@ export default function RewardsScreen() {
                 </TouchableOpacity>
               </View>
               
-              <Text style={styles.pointsTillRewardText}>
+              {/* <Text style={styles.pointsTillRewardText}>
                 {restaurant?.pointsTillReward || 'some'} points till your next rewards
+              </Text> */}
+
+              <Text style={styles.pointsTillRewardText}>
+                Use your points to buy rewards
               </Text>
               
               {/* Progress Bar */}
@@ -423,12 +475,12 @@ export default function RewardsScreen() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton, 
-                    reward.is_active ? styles.claimButton : styles.buyButton
+                    reward.is_active ? styles.buyButton : styles.unavailableButton
                   ]}
                   onPress={() => handleRewardPress(reward)}
                 >
                   <Text style={styles.actionButtonText}>
-                    {reward.is_active ? 'Claim' : 'Buy'}
+                    {reward.is_active ? 'Buy' : 'Unavailable'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -503,24 +555,24 @@ export default function RewardsScreen() {
             <Text style={styles.pointsText1}>{selectedReward?.points_required} Points</Text>
             <Text style={styles.rewardDescription1}>
               {modalType === 'buy'
-                ? `Unlock this deal on your next visit to\n${restaurant.name}.`
-                : `Claim your ${selectedReward?.title.toLowerCase()} at\n${restaurant.name}.`}
+                ? `Buy your ${selectedReward?.title.toLowerCase()} at\n${restaurant.name}.`
+                : `Unlock this deal on your next visit to\n${restaurant.name}.`}
             </Text>
 
             <TouchableOpacity
-              style={styles.buyButton1}
+              style={styles.unavailableButton1}
               onPress={() => {
-                if (modalType === 'buy') {
+                if (modalType === 'unavailable') {
                   // Handle buy action
                   setPurchaseModalVisible(false);
                 } else {
-                  // Handle claim action - show redemption confirmation
-                  handleClaimConfirm();
+                  // Handle buy action - show redemption confirmation
+                  handleBuyConfirm();
                 }
               }}
             >
-              <Text style={styles.buyButtonText1}>
-                {modalType === 'buy' ? 'Buy Deal' : 'Claim Reward'}
+              <Text style={styles.unavailableText1}>
+                {modalType === 'unavailable' ? 'Currently Unavailable' : 'Buy Reward'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -556,25 +608,25 @@ export default function RewardsScreen() {
             </View>
 
             <Text style={styles.rewardTitle1}>{selectedReward?.title}</Text>
-            <Text style={styles.pointsText1}>Successfully claimed!</Text>
+            <Text style={styles.pointsText1}>Successfully bought!</Text>
             <Text style={styles.rewardDescription1}>
               Show this code to the cashier to redeem your reward.
             </Text>
 
             <TouchableOpacity
-              style={styles.buyButton1}
+              style={styles.unavailableButton1}
               onPress={handleShowRedemptionCode}
             >
-              <Text style={styles.buyButtonText1}>
+              <Text style={styles.unavailableButtonText1}>
                 Show Redemption Code
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.buyButton1, { marginTop: 8, backgroundColor: '#999' }]}
+              style={[styles.unavailableButton1, { marginTop: 8, backgroundColor: '#999' }]}
               onPress={() => setRedeemConfirmModalVisible(false)}
             >
-              <Text style={styles.buyButtonText1}>Redeem Later</Text>
+              <Text style={styles.unavailableButtonText1}>Redeem Later</Text>
             </TouchableOpacity>
 
           </View>
@@ -616,10 +668,10 @@ export default function RewardsScreen() {
             </Text>
 
             <TouchableOpacity
-              style={styles.buyButton1}
+              style={styles.unavailableButton1}
               onPress={() => setRedemptionCodeModalVisible(false)}
             >
-              <Text style={styles.buyButtonText1}>Done</Text>
+              <Text style={styles.unavailableButtonText1}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -899,10 +951,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  claimButton: {
+  buyButton: {
     backgroundColor: '#FF8C00',
   },
-  buyButton: {
+  unavailableButton: {
     backgroundColor: '#999',
   },
   actionButtonText: {
@@ -1016,7 +1068,7 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 22,
   },
-  buyButton1: {
+  unavailableButton1: {
     backgroundColor: '#FF9800',
     borderRadius: 25,
     paddingVertical: 15,
@@ -1024,7 +1076,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 5,
   },
-  buyButtonText1: {
+  unavailableButtonText1: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
