@@ -19,6 +19,7 @@ import ResetPassword from './screens/auth/ResetPassword';
 import PointsHistoryScreen from './screens/user/PointsHistoryScreen';
 import ReceiptHistoryScreen from './screens/user/ReceiptHistoryScreen'; // Import the new screen
 import Favourites from './screens/main/Favourites';
+import SpecificRestaurantScreen from './screens/main/SpecificRestaurantScreen';
 
 import NotificationsScreen from './screens/main/NotificationsScreen';
 import EnterCode from './screens/main/EnterCode';
@@ -77,6 +78,7 @@ export default function App() {
         />
         
         <Stack.Screen name="Favourites" component={Favourites} options={{ headerShown: false, title: 'Favourites', headerLeft: () => null }} />
+        <Stack.Screen name="SpecificRestaurantScreen" component={SpecificRestaurantScreen} />
 
         {/* <Stack.Screen name="PointsEarnedScreen" component={PointsEarnedScreen} /> */}
 
