@@ -199,36 +199,30 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
 
       if (receiptError) throw receiptError;
 
-      // 3. Insert into receipt_items
-      if (receiptData.items && receiptData.items.length > 0) {
-        const itemsToInsert = receiptData.items.map(item => ({
-          receipt_id: dbReceipt.id,
-          description: item.description,
-          quantity: parseAmount(item.quantity), // Assuming quantity can be decimal
-          amount: parseAmount(item.amount),
-        }));
-        const { error: itemsError } = await supabase.from('receipt_items').insert(itemsToInsert);
-        if (itemsError) throw itemsError;
-      }
-
-      // 4. Update customer_points
-      if (pointsToAward > 0) {
-        const { data: currentPoints, error: pointsFetchError } = await supabase
+      // 3. Update or insert into customer_points
+      try {
+        // Check if customer_points entry exists
+        const { data: existingPoints, error: pointsFetchError } = await supabase
           .from('customer_points')
           .select('id, points')
           .eq('customer_id', userId)
           .eq('business_id', businessId)
           .single();
 
-        if (pointsFetchError && pointsFetchError.code !== 'PGRST116') throw pointsFetchError;
+        if (pointsFetchError && pointsFetchError.code !== 'PGRST116') { // PGRST116: No rows found
+          throw pointsFetchError;
+        }
 
-        if (currentPoints) {
+        if (existingPoints) {
+          // Update existing points
+          const newTotal = (existingPoints.points || 0) + pointsToAward;
           const { error: updateError } = await supabase
             .from('customer_points')
-            .update({ points: (currentPoints.points || 0) + pointsToAward, last_updated: new Date().toISOString() })
-            .eq('id', currentPoints.id);
+            .update({ points: newTotal, last_updated: new Date().toISOString() })
+            .eq('id', existingPoints.id);
           if (updateError) throw updateError;
         } else {
+          // Insert new points row
           const { error: insertError } = await supabase
             .from('customer_points')
             .insert({
@@ -239,6 +233,9 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
             });
           if (insertError) throw insertError;
         }
+      } catch (err) {
+        console.error('Error updating customer points:', err);
+        Alert.alert('Points Error', 'There was a problem updating your points. Please try again.');
       }
 
       Alert.alert('Success!', `Receipt saved and ${pointsToAward} points awarded from ${businessName}.`);
