@@ -32,6 +32,7 @@ export default function SpecificRestaurantScreen() {
   const [promotions, setPromotions] = useState([]);
   const [redemptionCode, setRedemptionCode] = useState('');
   const [boughtCodeId, setBoughtCodeId] = useState(null);
+  const [favourites, setFavourites] = useState([]);
   
   const navigation = useNavigation();
   
@@ -46,7 +47,17 @@ export default function SpecificRestaurantScreen() {
           return
         }
         setAuthUser(user)
-
+        // Fetch customer row to get favourites
+        const { data: customer, error: custErr } = await supabase
+          .from('customers')
+          .select('favourites')
+          .eq('id', user.id)
+          .single();
+        if (custErr) {
+          console.error('Error loading customer favourites:', custErr);
+        } else {
+          setFavourites(customer?.favourites || []);
+        }
         // 2) kick off business + rewards in parallel
         const businessPromise = supabase
           .from('businesses')
@@ -361,6 +372,31 @@ export default function SpecificRestaurantScreen() {
     return `${d.getMonth() + 1}.${d.getFullYear()}`;
   })();
   
+  const isFavourited = favourites.includes(BUSINESS_ID);
+
+  const handleToggleFavourite = async () => {
+    if (!authUser) {
+      Alert.alert('Error', 'You must be signed in to favourite a restaurant.');
+      return;
+    }
+    let newFavourites;
+    if (isFavourited) {
+      newFavourites = favourites.filter(id => id !== BUSINESS_ID);
+    } else {
+      newFavourites = [...favourites, BUSINESS_ID];
+    }
+    setFavourites(newFavourites);
+    const { error } = await supabase
+      .from('customers')
+      .update({ favourites: newFavourites })
+      .eq('id', authUser.id);
+    if (error) {
+      Alert.alert('Error', 'Could not update favourites.');
+      // Revert UI
+      setFavourites(favourites);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -451,9 +487,17 @@ export default function SpecificRestaurantScreen() {
             <View style={styles.pointsCard}>
               <View style={styles.pointsRow}>
                 <Text style={styles.pointsValue}>{customerPoints.toLocaleString()} pts</Text>
-                <TouchableOpacity style={styles.addPointsButton}>
-                  <Ionicons name="star" size={16} color="#FF8C00" />
-                  <Text style={styles.addPointsText}>Favourite</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.favouriteButton,
+                    isFavourited ? styles.favourited : styles.notFavourited
+                  ]}
+                  onPress={handleToggleFavourite}
+                >
+                  <Ionicons name="star" size={16} color={isFavourited ? 'white' : '#FF8C00'} />
+                  <Text style={{ color: isFavourited ? 'white' : '#FF8C00', fontWeight: 'bold', marginLeft: 4 }}>
+                    Favourite
+                  </Text>
                 </TouchableOpacity>
               </View>
               
@@ -1282,5 +1326,20 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
   },
-
+  favouriteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#FF8C00',
+  },
+  favourited: {
+    backgroundColor: '#FF8C00',
+  },
+  notFavourited: {
+    backgroundColor: 'white',
+  },
 });
