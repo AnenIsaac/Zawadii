@@ -386,16 +386,17 @@ const handleNext = async () => {
 
               {/* Phone Number Input */}
               <View style={styles.inputContainer}>
+                <View style={styles.prefixContainer}>
+                  <Text style={styles.prefixText}>+255</Text>
+                </View>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Phone number"
-                  keyboardType="phone-pad"
+                  style={styles.phoneInput}
+                  placeholder="Enter phone number"
+                  keyboardType="number-pad"
                   value={signupData.phoneNumber}
                   onChangeText={(text) => handleSignupChange('phoneNumber', text)}
+                  maxLength={9}
                 />
-                <View style={styles.iconContainer}>
-                 <Feather name="phone" size={20} color="#666" />
-                </View>
               </View>
 
               {/* Gender Selector */}
@@ -799,8 +800,22 @@ const styles = StyleSheet.create({
   fontSize: 12,
   marginTop: 4,
   paddingHorizontal: 5
-}
-
+},
+prefixContainer: {
+    marginRight: 6,
+    // No extra padding or margin here, so it aligns with the input border
+  },
+  prefixText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  phoneInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 0, // Remove extra padding for alignment
+    paddingHorizontal: 0,
+  },
 });
 
 export default Authentication;
