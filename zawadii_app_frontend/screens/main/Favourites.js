@@ -32,7 +32,7 @@ const favoriteRestaurants = [
     rewards: 5,
     deals: 3,
     image: require('../../assets/fav2.jpg'), // Replace with your actual image path
-    notification: false
+    // notification: false
   },
   { 
     id: '3', 
@@ -42,7 +42,7 @@ const favoriteRestaurants = [
     rewards: 5,
     deals: 3,
     image: require('../../assets/fav3.jpg'), // Replace with your actual image path
-    notification: true
+    // notification: true
   },
   { 
     id: '4', 
@@ -52,7 +52,7 @@ const favoriteRestaurants = [
     rewards: 5,
     deals: 3,
     image: require('../../assets/fav1.jpg'), // Replace with your actual image path
-    notification: true
+    // notification: true
   },
 ];
 
@@ -62,13 +62,13 @@ export default function Favourites() {
       <StatusBar barStyle="dark-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        {/* <TouchableOpacity style={styles.backButton}>
+      {/* <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity> */}
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>My Favourites</Text>
         <View style={styles.headerRightSpace} />
-      </View>
+      </View> */}
       
       {/* Main Content - Scrollable */}
       <ScrollView 
@@ -86,11 +86,11 @@ export default function Favourites() {
               {/* Overlay to ensure text visibility */}
               <View style={styles.cardOverlay}>
                 {/* Notification badge if exists */}
-                {restaurant.notification && (
+                {/* {restaurant.notification && (
                   <View style={styles.notificationBadge}>
                     <View style={styles.notificationDot} />
                   </View>
-                )}
+                )} */}
                 
                 {/* Restaurant name */}
                 <Text style={styles.restaurantName}>{restaurant.name}</Text>
@@ -195,28 +195,28 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     borderRadius: 15,
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: 12,
-    height: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    overflow: 'visible',  // Allows the dot to extend outside the badge
-  },
-  notificationDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 12,
-    backgroundColor: '#FF5722',
-    position: 'absolute',  // Keeps the dot inside the badge
-    top: 0,                // Keeps it inside the parent container
-    right: 0,              // Aligns it at the top-right of the badge
-  },  
+  // notificationBadge: {
+  //   position: 'absolute',
+  //   top: -3,
+  //   right: -3,
+  //   width: 12,
+  //   height: 12,
+  //   borderRadius: 12,
+  //   backgroundColor: 'rgba(0,0,0,0.2)',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   zIndex: 10,
+  //   overflow: 'visible',  // Allows the dot to extend outside the badge
+  // },
+  // notificationDot: {
+  //   width: 12,
+  //   height: 12,
+  //   borderRadius: 12,
+  //   backgroundColor: '#FF5722',
+  //   position: 'absolute',  // Keeps the dot inside the badge
+  //   top: 0,                // Keeps it inside the parent container
+  //   right: 0,              // Aligns it at the top-right of the badge
+  // },  
   // notificationBadge: {
   //   position: 'absolute',
   //   top: 16,

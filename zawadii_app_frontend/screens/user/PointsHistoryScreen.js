@@ -1,171 +1,151 @@
-import React from 'react';
-import { View, Text, SafeAreaView, StyleSheet, Image, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, SafeAreaView, StyleSheet, Image, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
+import { supabase } from '../../supabaseClient';
 import { Ionicons } from '@expo/vector-icons';
 
-const PointsHistoryScreen = ({ navigation }) => {
-  const transactions = [
-    {
-      id: '1',
-      merchantName: 'Chicken Pizza',
-      source: 'From Luigi\'s Pizzeria',
-      points: 50,
-      status: 'earned',
-      date: '17 Sep 2023',
-      time: '10:34 AM',
-      transactionId: '9549253174520',
-      logo: require('../../assets/luigis-pizza.jpg'),
-    },
-    {
-      id: '2',
-      merchantName: 'From PastaBar',
-      source: '',
-      points: 40,
-      status: 'earned',
-      date: '16 Sep 2023',
-      time: '18:08 PM',
-      transactionId: '6857463421',
-      logo: require('../../assets/pastabar.jpg'),
-    },
-    {
-      id: '3',
-      merchantName: 'From Shawarma 27',
-      source: '',
-      points: 100,
-      status: 'earned',
-      date: '16 Sep 2023',
-      time: '11:24 AM',
-      transactionId: '2839045841',
-      logo: require('../../assets/shawarma27.jpg'),
-    },
-    {
-      id: '4',
-      merchantName: 'Burger 53',
-      source: '',
-      points: 0,
-      status: 'rejected',
-      date: '15 Sep 2023',
-      time: '10:11 AM',
-      transactionId: '0978754216',
-      logo: require('../../assets/burger53.jpg'),
-    },
-    {
-      id: '5',
-      merchantName: 'Iced Latte',
-      source: 'From Starbucks Coffee',
-      points: 20,
-      status: 'earned',
-      date: '14 Sep 2023',
-      time: '18:59 PM',
-      transactionId: '7652309784',
-      logo: require('../../assets/starbucks.jpg'),
-    },
-    {
-      id: '6',
-      merchantName: 'Burger King',
-      source: 'From Starbucks Coffee',
-      points: 30,
-      status: 'redeemed',
-      date: '13 Sep 2023',
-      time: '10:24 AM',
-      transactionId: '9854782911',
-      logo: require('../../assets/burgerking.jpg'),
-    },
-    {
-      id: '7',
-      merchantName: 'Big Boss',
-      source: '',
-      points: 0,
-      status: '',
-      date: '12 Sep 2023',
-      time: '',
-      transactionId: '',
-      logo: require('../../assets/bigboss.jpg'),
-    },
-  ];
+export default function PointsHistoryScreen() {
+  const [loading, setLoading] = useState(true);
+  const [authUser, setAuthUser] = useState(null);
+  const [interactions, setInteractions] = useState([]);
 
   // Function to get status color and label
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'earned':
-        return { color: '#4CAF50', label: 'earned', backgroundColor: '#E8F5E9' };
-      case 'redeemed':
-        return { color: '#9E9E9E', label: 'redeemed', backgroundColor: '#F5F5F5' };
-      case 'rejected':
-        return { color: '#F44336', label: 'rejected', backgroundColor: '#FFEBEE' };
+  // const getStatusStyle = (status) => {
+  //   switch (status) {
+  //     case 'earned':
+  //       return { color: '#4CAF50', label: 'earned', backgroundColor: '#E8F5E9' };
+  //     case 'redeemed':
+  //       return { color: '#9E9E9E', label: 'redeemed', backgroundColor: '#F5F5F5' };
+  //     case 'rejected':
+  //       return { color: '#F44336', label: 'rejected', backgroundColor: '#FFEBEE' };
+  //     default:
+  //       return { color: '#9E9E9E', label: '', backgroundColor: 'transparent' };
+  //   }
+  // };
+
+  useEffect(() => {
+    async function loadHistory() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      setAuthUser(user);
+
+      const { data, error } = await supabase
+        .from('customer_business_interactions')
+        .select(`
+          id,
+          interaction_type,
+          points_awarded,
+          created_at,
+          business:businesses!inner(name, logo_url)
+        `)
+        .order('created_at', { ascending: false })
+        .eq('customer_id', user.id);
+
+      if (error) {
+        console.error('Error loading interactions:', error);
+      } else {
+        setInteractions(data);
+      }
+      setLoading(false);
+    };
+
+    loadHistory();
+  }, []);
+
+  // human‑readable mapping for interaction_type
+  const humanizeType = (type) => {
+    switch (type) {
+      case 'purchase_receipt_scan':
+        return 'Receipt scanned';
+      // add more mappings as needed
       default:
-        return { color: '#9E9E9E', label: '', backgroundColor: 'transparent' };
+        return type.replace(/_/g, ' ');
     }
   };
+
+  if (loading) {
+    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Header */}
-      <View style={styles.header}>
-        {/* <TouchableOpacity style={styles.backButton}
-        onPress={() => navigation.navigate('Main', { screen: 'Rewards' })} // Navigate to HomeScreen
-        >
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity> */}
+      {/* <View style={styles.header}>
         <Text style={styles.headerTitle}>POINTS HISTORY</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      </View> */}
       
-      {/* Transaction List */}
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {transactions.map((transaction) => {
-          const statusStyle = getStatusStyle(transaction.status);
+        {interactions.map((tx) => {
+          {/* const statusStyle = getStatusStyle(interactions.status); */}
+          const dt = new Date(tx.created_at);
+          const logo = tx.business.logo_url
+          const dateStr = dt.toLocaleDateString();
+          const timeStr = dt.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
+          {/* console.log('logo url:', tx.business.logo_url); */}
+
           
           return (
-            <View key={transaction.id} style={styles.transactionCard}>
+            <View key={tx.id} style={styles.transactionCard}>
               {/* Logo */}
               <Image 
-                source={transaction.logo}
+                source={{ uri:logo }}
                 style={styles.logo}
-               
+                resizeMode="cover"
+                onError={e => console.warn('Image load failed:', e.nativeEvent.error)}
               />
               
               {/* Transaction Details */}
               <View style={styles.detailsContainer}>
-                <Text style={styles.merchantName}>{transaction.merchantName}</Text>
-                {transaction.source ? (
+                {/* <Text style={styles.merchantName}>{humanizeType(tx.interaction_type)}</Text> */}
+                <Text style={styles.merchantName}>{tx.business.name}</Text>
+                {/* {transaction.source ? (
                   <Text style={styles.sourceText}>{transaction.source}</Text>
-                ) : null}
-                <Text style={styles.transactionIdText}>Transaction ID: {transaction.transactionId}</Text>
+                ) : null} */}
+                <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
+                  <Text style={[styles.statusText, { color: '#4CAF50' }]}>
+                    {humanizeType(tx.interaction_type)}
+                  </Text>
+                </View>
+                {/* <Text style={styles.transactionIdText}>{tx.points_awarded > 0 ? '+' : ''} {tx.points_awarded} points</Text> */}
               </View>
               
-              {/* Points and Date */}
               <View style={styles.rightContainer}>
                 <Text style={styles.pointsText}>
-                  {transaction.points} {transaction.points === 1 ? 'point' : 'points'}
+                  {tx.points_awarded} {tx.points_awarded === 1 ? 'point' : 'points'}
                 </Text>
                 
-                {transaction.status && (
-                  <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-                    <Text style={[styles.statusText, { color: statusStyle.color }]}>
-                      {statusStyle.label}
+                {/* {transaction.status && ( */}
+                  {/* <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
+                    <Text style={[styles.statusText, { color: '#4CAF50' }]}>
+                      {tx.business.name}
                     </Text>
-                  </View>
-                )}
+                  </View> */}
+                {/* )} */}
                 
-                <Text style={styles.dateText}>{transaction.date}</Text>
-                {transaction.time && <Text style={styles.timeText}>{transaction.time}</Text>}
+                <Text style={styles.dateText}>{dateStr}</Text>
+                <Text style={styles.timeText}>{timeStr}</Text>
               </View>
             </View>
           );
         })}
-      </ScrollView>
-      
-      {/* Tab Bar */}
-      {/* <BottomNav /> */}
-      
+
+        {!interactions.length && (
+          <Text style={styles.emptyText}>No history available.</Text>
+        )}
+      </ScrollView>      
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -174,16 +154,10 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    justifyContent: 'center',
     paddingVertical: 12,
-    backgroundColor: '#f5f3ef',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
-  },
-  backButton: {
-    padding: 4,
   },
   headerTitle: {
     fontSize: 16,
@@ -197,6 +171,7 @@ const styles = StyleSheet.create({
   },
   transactionCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
@@ -208,37 +183,42 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   logo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 10,
     marginRight: 12,
-    marginTop: 20,
+    // marginTop: 20,
     // marginBottom: 17,
-
+    
   },
   detailsContainer: {
     flex: 1,
-    justifyContent: 'center',
+    // justifyContent: 'center',
   },
   merchantName: {
+    width: '95%',
     fontSize: 15,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 2,
+    // backgroundColor: 'red',
+    paddingLeft: 5,
+    // textAlign: 'center',
+    // marginBottom: 2,
   },
-  sourceText: {
+  // sourceText: {
+    //   fontSize: 13,
+  //   color: '#666',
+  //   marginBottom: 2,
+  // },
+  transactionIdText: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 2,
-  },
-  transactionIdText: {
-    fontSize: 11,
-    color: '#999',
+    marginTop: 2,
   },
   rightContainer: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingLeft: 8,
+    // paddingLeft: 8,
   },
   pointsText: {
     fontSize: 15,
@@ -247,22 +227,26 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   statusBadge: {
+    width: '60%',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
-    marginBottom: 5,
+    marginTop: 10,
+    // marginBottom: 5,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
   dateText: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#666',
   },
   timeText: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#666',
+    marginTop: 2,
   },
   tabBar: {
     flexDirection: 'row',
@@ -273,25 +257,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingBottom: 20, // Extra padding for iOS home indicator area
   },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-    flex: 1,
-  },
-  centerTabItem: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#888',
+    fontSize: 14,
   },
 });
-
-export default PointsHistoryScreen;

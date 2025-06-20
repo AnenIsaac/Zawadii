@@ -120,7 +120,7 @@ const SearchScreen = ({ navigation }) => {
     >
       <View style={styles.restaurantImageContainer}>
         <Image 
-          source={item.logo ? { uri: item.logo } : require('../../assets/logo.png')}
+          source={item.logo_url ? { uri: item.logo_url } : require('../../assets/logo.png')}
           style={styles.restaurantImage}
         />
       </View>

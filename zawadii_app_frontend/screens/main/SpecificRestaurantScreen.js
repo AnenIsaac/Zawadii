@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, Pressable, ImageBackground, StatusBar, Modal, Linking, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, Pressable, ImageBackground, StatusBar, Modal, Linking, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 import { useNavigation } from "@react-navigation/native";
@@ -29,6 +29,7 @@ export default function SpecificRestaurantScreen() {
   const [selectedReward, setSelectedReward] = useState(null);
   const [modalType, setModalType] = useState(null); // 'buy' or 'unavailable'
   const [selectedDeal, setSelectedDeal] = useState(null);
+  const [promotions, setPromotions] = useState([]);
   const [redemptionCode, setRedemptionCode] = useState('');
   const [boughtCodeId, setBoughtCodeId] = useState(null);
   
@@ -51,7 +52,7 @@ export default function SpecificRestaurantScreen() {
           .from('businesses')
           .select(`
             id, name, description, logo_url, cover_image_url,
-            phone_number, email, instagram, whatsapp, tiktok,
+            phone_number, email, instagram, whatsapp, x, tiktok,
             points_conversion, created_at
           `)
           .eq('id', BUSINESS_ID)
@@ -92,6 +93,19 @@ export default function SpecificRestaurantScreen() {
         } else {
           setCustomerPoints(cpData?.points ?? 0)
         }
+
+        // 4) now load promotions for this business
+        const { data: promos, error: promoErr } = await supabase
+          .from('promotions')
+          .select('*')
+          .eq('business_id', BUSINESS_ID);
+
+        if (promoErr) {
+          console.error('Error loading promotions:', promoErr);
+        } else {
+          setPromotions(promos);
+        }
+
       } catch (err) {
         console.error('Unexpected error in loadAll:', err)
       } finally {
@@ -103,7 +117,7 @@ export default function SpecificRestaurantScreen() {
   }, [])
 
   if (loading) {
-    return <Text>Loading…</Text>
+    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />;
   }
 
   // Deals data
@@ -243,6 +257,7 @@ export default function SpecificRestaurantScreen() {
     const urlMap = {
       instagram: restaurant.instagram,
       tiktok: restaurant.tiktok,
+      x: restaurant.x,
       whatsapp: restaurant.whatsapp,
     };
 
@@ -252,11 +267,24 @@ export default function SpecificRestaurantScreen() {
     }
 
     let link = raw;
-    if (platform === 'whatsapp') {
-      // strip any non‑digits then build wa.me url
-      const phone = raw.replace(/\D/g, '');
-      link = `https://wa.me/${phone}`;
+    switch (platform) {
+      case 'instagram':
+        link = `https://instagram.com/${raw.replace(/^@/, '')}`;
+        break;
+      case 'tiktok':
+        link = `https://www.tiktok.com/@${raw.replace(/^@/, '')}`;  
+        break;
+      case 'x':
+        link = `https://x.com/${raw.replace(/^@/, '')}`;
+        break;
+      case 'whatsapp':
+        const phone = raw.replace(/\D/g, '');
+        link = `https://wa.me/${phone}`;
+        break;
+      default:
+        break;
     }
+
 
     Linking.openURL(link).catch((err) => {
       console.error('Error opening URL:', err);
@@ -306,6 +334,11 @@ export default function SpecificRestaurantScreen() {
                 <Ionicons name="logo-tiktok" size={24} color="#000" />
               </TouchableOpacity>
             )}
+            {restaurant.x && (
+              <TouchableOpacity onPress={() => handleSocialMedia('x')}>
+                <Ionicons name="logo-twitter" size={24} color="#000" />
+              </TouchableOpacity>
+            )}
             {restaurant.whatsapp && (
               <TouchableOpacity onPress={() => handleSocialMedia('whatsapp')}>
                 <Ionicons name="logo-whatsapp" size={24} color="#000" />
@@ -340,15 +373,12 @@ export default function SpecificRestaurantScreen() {
         <View style={styles.headerOverlay}>
           {/* Back button and info button */}
           <View style={styles.topNavigation}>
-            {/* <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('HomeScreen')}>
-              <Ionicons name="chevron-back" size={24} color="white" />
-            </TouchableOpacity> */}
             {/* Info Button */}
             <TouchableOpacity 
               style={styles.infoButton} 
               onPress={() => setInfoModalVisible(true)}
             >
-              <Ionicons name="information-circle-outline" size={24} color="white" />
+              <Ionicons name="information-circle-outline" size={26} color="white" />
             </TouchableOpacity>
           </View>
           
@@ -384,6 +414,15 @@ export default function SpecificRestaurantScreen() {
                 />
               </TouchableOpacity>
             )}
+            {restaurant.x && (
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('x')}
+              >
+                <Ionicons name='logo-twitter' size={18} color="white" 
+                />
+              </TouchableOpacity>
+            )}
             {restaurant.whatsapp && (
               <TouchableOpacity 
                 style={styles.socialButton}
@@ -403,7 +442,7 @@ export default function SpecificRestaurantScreen() {
             </View>
             <View style={styles.statItem}>
               <Ionicons name="pricetag-outline" size={20} color="white" />
-              <Text style={styles.statText}>{restaurant?.deals || '69'} deals</Text>
+              <Text style={styles.statText}>{promotions.length} {promotions.length === 1 ? 'deal' : 'deals'}</Text>
             </View>
           </View>
 
@@ -413,8 +452,8 @@ export default function SpecificRestaurantScreen() {
               <View style={styles.pointsRow}>
                 <Text style={styles.pointsValue}>{customerPoints.toLocaleString()} pts</Text>
                 <TouchableOpacity style={styles.addPointsButton}>
-                  <Ionicons name="add" size={16} color="#FF8C00" />
-                  <Text style={styles.addPointsText}>Add points</Text>
+                  <Ionicons name="star" size={16} color="#FF8C00" />
+                  <Text style={styles.addPointsText}>Favourite</Text>
                 </TouchableOpacity>
               </View>
               
@@ -491,31 +530,44 @@ export default function SpecificRestaurantScreen() {
           )
         ) : (
           // Deals list
-          <ScrollView 
-            style={styles.dealsContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {dealsList.map((imageSource, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  setSelectedDeal({
-                    image: imageSource,
-                    title: 'KUKU TUESDAY',
-                    description: 'We bet you love a good deal on a Tuesday\nFor 12,000... Get an extra piece of Kuku... 5 pieces in total!'
-                  });
-                  setDealsModalVisible(true);
-                }}
-              >
-                <Image 
-                  source={imageSource}
-                  style={styles.dealImage}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+          promotions.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No deals are available for {restaurant.name} at the moment.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView 
+              style={styles.dealsContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              {promotions.map((promo) => (
+                <TouchableOpacity
+                  key={promo.id}
+                  style={styles.dealCard}
+                  onPress={() => {
+                    setSelectedDeal(promo);
+                    setDealsModalVisible(true);
+                  }}
+                >
+                  <Image 
+                    source={{ uri: promo.image_url }}
+                    style={styles.dealImage}
+                    resizeMode="cover"
+                  />
+                  <Text style={styles.dealTitle}>{promo.title}</Text>
+                  {promo.subtitle && <Text style={styles.dealSubtitle}>{promo.subtitle}</Text>}
+                  {promo.points_required != null && (
+                    <View style={styles.dealPoints}>
+                      <Text style={styles.dealPointsText}>
+                        {promo.points_required.toLocaleString()} pts
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ))}
         
         {/* Add some bottom padding for scrolling */}
         <View style={styles.bottomPadding} />
@@ -696,16 +748,33 @@ export default function SpecificRestaurantScreen() {
               <Text style={styles.closeButtonTextDeal}>✕</Text>
             </Pressable>
 
-            {selectedDeal?.image && (
+            {selectedDeal?.image_url && (
               <Image
-                source={selectedDeal.image}
+                // source={selectedDeal.image}
+                source={{ uri: selectedDeal.image_url }}
                 style={styles.dealImageModal}
                 resizeMode="cover"
               />
             )}
 
-            <Text style={styles.dealTitle}>{selectedDeal?.title}</Text>
+            <Text style={styles.dealTitleModal}>{selectedDeal?.title}</Text>
             <Text style={styles.dealDescription}>{selectedDeal?.description}</Text>
+            {(selectedDeal?.start_date || selectedDeal?.end_date) && (
+              <View style={styles.dealDatesContainer}>
+                {selectedDeal?.start_date && (
+                  <View style={styles.dealDateBlock}>
+                    <Text style={styles.dealDateLabel}>Starts</Text>
+                    <Text style={styles.dealDateValue}>{selectedDeal.start_date}</Text>
+                  </View>
+                )}
+                {selectedDeal?.end_date && (
+                  <View style={styles.dealDateBlock}>
+                    <Text style={styles.dealDateLabel}>Ends</Text>
+                    <Text style={styles.dealDateValue}>{selectedDeal.end_date}</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -780,15 +849,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   topNavigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  backButton: {
-    padding: 4,
+    width: '100%',
+    paddingTop: '7%',
+    // flexDirection: 'row',
+    // justifyContent: 'space-between',
+    // alignItems: 'flex-end',
+    // backgroundColor: 'red',
   },
   infoButton: {
     padding: 4,
+    alignSelf: 'flex-end',
   },
   greetingContainer: {
     flexDirection: 'row',
@@ -970,13 +1040,48 @@ const styles = StyleSheet.create({
   },
   dealsContainer: {
     flex: 1,
-    padding: 15,
+    // paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  dealCard: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width:0, height:1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   dealImage: {
     width: '100%',
-    height: 180,
+    height: 170,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  dealTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  dealSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 6,
+  },
+  dealPoints: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF2E5',
     borderRadius: 12,
-    marginBottom: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  dealPointsText: {
+    color: '#FF8C00',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 
   centeredView1: {
@@ -1112,14 +1217,14 @@ const styles = StyleSheet.create({
     right: 10,
     zIndex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 15,
+    borderRadius: 50,
     paddingHorizontal: 10,
-    paddingVertical: 2,
+    paddingVertical: 5,
   },
   
   closeButtonTextDeal: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   
@@ -1130,7 +1235,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
   },
   
-  dealTitle: {
+  dealTitleModal: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -1143,6 +1248,29 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 20,
     color: '#555',
+  },
+  dealDatesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignSelf: 'center',
+    width: '80%',
+    marginTop: 25,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  dealDateBlock: {
+    alignItems: 'center',
+  },
+  dealDateLabel: {
+    fontSize: 12,
+    color: '#999',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  dealDateValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
   },
 
   emptyContainer: {

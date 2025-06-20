@@ -50,14 +50,13 @@ export default function App() {
         <Stack.Screen name="PasswordChangeFailure" component={PasswordChangeFailure} />
         <Stack.Screen name="PasswordChangeSuccess" component={PasswordChangeSuccess} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
-        <Stack.Screen name="PointsHistoryScreen" component={PointsHistoryScreen} options={{ headerShown: false, title: 'Points History', headerLeft: () => null }} />
+        <Stack.Screen name="PointsHistoryScreen" component={PointsHistoryScreen} options={{ headerShown: true, title: 'Points History' }} />
         <Stack.Screen 
           name="ReceiptHistoryScreen" 
           component={ReceiptHistoryScreen} 
           options={{ 
             headerShown: true, 
             title: 'Receipt History',
-            headerLeft: () => null // Remove back button
           }} 
         />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
@@ -77,8 +76,8 @@ export default function App() {
           }} 
         />
         
-        <Stack.Screen name="Favourites" component={Favourites} options={{ headerShown: false, title: 'Favourites', headerLeft: () => null }} />
-        <Stack.Screen name="SpecificRestaurantScreen" component={SpecificRestaurantScreen} />
+        <Stack.Screen name="Favourites" component={Favourites} options={{ headerShown: true, title: 'My Favourites', headerTransparent: '' }} />
+        <Stack.Screen name="SpecificRestaurantScreen" component={SpecificRestaurantScreen} options={{ headerShown: true, headerTransparent: true, headerTitle: '', headerTintColor: '#fff' }} />
 
         {/* <Stack.Screen name="PointsEarnedScreen" component={PointsEarnedScreen} /> */}
 
