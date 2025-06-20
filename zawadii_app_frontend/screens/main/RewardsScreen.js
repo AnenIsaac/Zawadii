@@ -237,6 +237,7 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
+    // width: '90%',
     marginHorizontal: 10,
   },
   cardTitle: {
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   lastRow: {
-    width: '30%', 
+    width: '40%', 
     alignItems: 'flex-end',
     // backgroundColor: 'green',
   },
