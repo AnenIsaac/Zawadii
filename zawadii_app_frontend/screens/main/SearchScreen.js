@@ -99,7 +99,7 @@ const SearchScreen = ({ navigation }) => {
   const CategoryItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.categoryItem}
-      onPress={() => navigation.navigate('RestaurantDetails', { restaurantId: item.id })}
+      onPress={() => navigation.navigate('SpecificRestaurantScreen', { businessId: item.id })}
     >
       <View style={styles.categoryImageContainer}>
         <Image 
@@ -116,7 +116,7 @@ const SearchScreen = ({ navigation }) => {
   const renderRestaurantItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.restaurantItem}
-      onPress={() => navigation.navigate('RestaurantDetails', { restaurantId: item.id })}
+      onPress={() => navigation.navigate('SpecificRestaurantScreen', { businessId: item.id })}
     >
       <View style={styles.restaurantImageContainer}>
         <Image 

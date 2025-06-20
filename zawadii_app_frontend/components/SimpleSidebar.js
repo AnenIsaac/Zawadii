@@ -31,7 +31,7 @@ const SimpleSidebar = ({ visible, onClose, navigation }) => {
 
             {/* Menu Items */}
             <View style={styles.menuContainer}>
-              <TouchableOpacity 
+              {/* <TouchableOpacity 
                 style={styles.menuItem}
                 onPress={() => {
                   onClose();
@@ -40,7 +40,7 @@ const SimpleSidebar = ({ visible, onClose, navigation }) => {
               >
                 <Ionicons name="settings-outline" size={24} color="#333" />
                 <Text style={styles.menuItemText}>Settings</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity 
                 style={styles.menuItem}

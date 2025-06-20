@@ -3,10 +3,13 @@ import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, Pressabl
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 import { useNavigation } from "@react-navigation/native";
+import { useRoute } from '@react-navigation/native';
 
 export default function SpecificRestaurantScreen() {
+  const route = useRoute();
+  const { businessId } = route.params;
   // const BUSINESS_ID = '4311dcf0-053c-4c57-98a2-22484bf2bd92';
-  const BUSINESS_ID = '1a50c776-df6b-416e-ad1d-bba18e5f499f';
+  const BUSINESS_ID = businessId; 
   const [authUser, setAuthUser] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
   const [rewardsData, setRewardsData] = useState([]);

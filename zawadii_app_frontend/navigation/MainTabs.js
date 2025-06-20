@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 
 // Import Main Screens
 import HomeScreen from '../screens/main/HomeScreen';
@@ -10,6 +11,43 @@ import SearchScreen from '../screens/main/SearchScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+
+const styles = StyleSheet.create({
+  scanButtonContainer: {
+    top: -20, // Raise the button above the tab bar
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#FFA500',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    borderWidth: 4,
+    borderColor: '#fff', // Optional: white border for contrast
+  },
+});
+
+function ScanTabBarButton({ children, onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.scanButtonContainer}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.scanButton}>
+        <Ionicons name="scan" size={32} color="#fff" />
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 const MainTabs = () => {
   return (
@@ -41,9 +79,19 @@ const MainTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Rewards" component={RewardsScreen} />
-      <Tab.Screen name="Scan" component={ScanScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen
+        name="Scan"
+        component={ScanScreen}
+        options={{
+          tabBarLabel: '',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name="scan" size={28} color={focused ? "#FFA500" : "#ccc"} />
+          ),
+          tabBarButton: (props) => <ScanTabBarButton {...props} />,
+        }}
+      />
+      <Tab.Screen name="Rewards" component={RewardsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
