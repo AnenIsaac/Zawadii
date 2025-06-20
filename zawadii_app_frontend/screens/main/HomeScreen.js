@@ -10,11 +10,12 @@ import {
   SafeAreaView, 
   StatusBar,
   ImageBackground,
-   
+  RefreshControl,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getValidPromotions } from '../../utils/getValidPromotions';
+import { supabase } from '../../supabaseClient';
 
 // Constants for promotion carousel
 const PROMOTION_CARD_WIDTH = 300; // from styles.promotionCard.width
@@ -29,6 +30,9 @@ const HomeScreen = ({ navigation }) => {
   const promotionsScrollViewRef = useRef(null);
   const [promotionsData, setPromotionsData] = useState([]);
   const [loadingPromotions, setLoadingPromotions] = useState(true);
+  const [favouriteBusinesses, setFavouriteBusinesses] = useState([]);
+  const [favouriteLoading, setFavouriteLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchPromotions = async () => {
@@ -46,12 +50,108 @@ const HomeScreen = ({ navigation }) => {
     fetchPromotions();
   }, []);
 
+  useEffect(() => {
+    const fetchFavourites = async () => {
+      setFavouriteLoading(true);
+      try {
+        const { data: { user }, error: userErr } = await supabase.auth.getUser();
+        if (userErr || !user) {
+          setFavouriteBusinesses([]);
+          setFavouriteLoading(false);
+          return;
+        }
+        const { data: customer, error: custErr } = await supabase
+          .from('customers')
+          .select('favourites')
+          .eq('id', user.id)
+          .single();
+        if (custErr || !customer?.favourites?.length) {
+          setFavouriteBusinesses([]);
+          setFavouriteLoading(false);
+          return;
+        }
+        const businessIds = customer.favourites;
+        const { data: businesses, error: bizErr } = await supabase
+          .from('businesses')
+          .select('id, name')
+          .in('id', businessIds);
+        const { data: pointsRows, error: pointsErr } = await supabase
+          .from('customer_points')
+          .select('business_id, points')
+          .eq('customer_id', user.id)
+          .in('business_id', businessIds);
+        const favs = businesses.map(biz => ({
+          id: biz.id,
+          name: biz.name,
+          points: pointsRows.find(p => p.business_id === biz.id)?.points || 0
+        }));
+        setFavouriteBusinesses(favs);
+      } catch (e) {
+        setFavouriteBusinesses([]);
+      } finally {
+        setFavouriteLoading(false);
+      }
+    };
+    fetchFavourites();
+  }, []);
+
   const handlePromotionScroll = (event) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.floor(scrollPosition / PROMOTION_SNAP_INTERVAL + 0.5);
     if (currentIndex >= 0 && currentIndex < promotionsData.length) {
       setActivePromotionIndex(currentIndex);
     }
+  };
+
+  const refreshHomeScreen = async () => {
+    setRefreshing(true);
+    // Re-fetch promotions
+    try {
+      const promos = await getValidPromotions(4);
+      setPromotionsData(promos || []);
+    } catch (e) {
+      setPromotionsData([]);
+    }
+    // Re-fetch favourites
+    try {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) {
+        setFavouriteBusinesses([]);
+        setFavouriteLoading(false);
+      } else {
+        const { data: customer, error: custErr } = await supabase
+          .from('customers')
+          .select('favourites')
+          .eq('id', user.id)
+          .single();
+        if (custErr || !customer?.favourites?.length) {
+          setFavouriteBusinesses([]);
+          setFavouriteLoading(false);
+        } else {
+          const businessIds = customer.favourites;
+          const { data: businesses } = await supabase
+            .from('businesses')
+            .select('id, name')
+            .in('id', businessIds);
+          const { data: pointsRows } = await supabase
+            .from('customer_points')
+            .select('business_id, points')
+            .eq('customer_id', user.id)
+            .in('business_id', businessIds);
+          const favs = businesses.map(biz => ({
+            id: biz.id,
+            name: biz.name,
+            points: pointsRows.find(p => p.business_id === biz.id)?.points || 0
+          }));
+          setFavouriteBusinesses(favs);
+          setFavouriteLoading(false);
+        }
+      }
+    } catch (e) {
+      setFavouriteBusinesses([]);
+      setFavouriteLoading(false);
+    }
+    setRefreshing(false);
   };
 
   return (
@@ -80,7 +180,12 @@ const HomeScreen = ({ navigation }) => {
         locations={[0.13, 0.32, 1]}
         style={styles.gradient}
       >
-        <ScrollView style={styles.mainScrollView}>
+        <ScrollView
+          style={styles.mainScrollView}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={refreshHomeScreen} />
+          }
+        >
           {/* Promotions Carousel */}
           {loadingPromotions ? (
     <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
@@ -145,53 +250,51 @@ const HomeScreen = ({ navigation }) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.favouritesContainer}
+            snapToInterval={300 + 15} // Card width + margin
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingRight: 15 }}
           >
-          
-
-<View style={styles.favouriteCard}>
-  <ImageBackground 
-    source={require('../../assets/loyalty-card.jpeg')} 
-    style={styles.favouriteBackground}
-    imageStyle={{ borderRadius: 15 }} // Ensures rounded corners
-  >
-    <View style={styles.favouriteContent}>
-      <View style={styles.favouriteHeader}>
-        <Text style={styles.favouriteName}>Burger 53</Text>
-        <FontAwesome name="star" size={16} color="#FF6B00" />
-      </View>
-
-      <Text style={styles.favouritePoints}>1240pts</Text>
-      <Text style={styles.favouritePointsToNext}>760 points till your next rewards</Text>
-     
-      <View style={styles.progressBarContainer}>
-        <View style={styles.progressBarBackground}>
-          <View style={styles.progressBar}></View>
-        </View>
-      </View>
-
-      <View style={styles.favouriteFooter}>
-        <View style={styles.favouriteFooterItem}>
-          <MaterialIcons name="card-giftcard" size={18} color="#FFFFFF" />
-          <Text style={styles.favouriteFooterText}>5 rewards</Text>
-        </View>
-        <View style={styles.favouriteFooterItem}>
-          <FontAwesome name="tag" size={18} color="#FFFFFF" />
-          <Text style={styles.favouriteFooterText}>3 deals</Text>
-        </View>
-      </View>
-    </View>
-  </ImageBackground>
-</View>
-
-            {/* Add Favorites Button */}
-            <TouchableOpacity 
-              style={styles.addFavouriteButton}
-              onPress={() => navigation.navigate('Favourites')}
-            >
-              <View style={styles.addFavouriteCircle}>
-                <Ionicons name="add" size={30} color="#FF8924" />
-              </View>
-            </TouchableOpacity>
+            {favouriteLoading ? (
+              <View style={{justifyContent:'center',alignItems:'center',height:120}}><Text>Loading...</Text></View>
+            ) : favouriteBusinesses.length === 0 ? (
+              <View style={{justifyContent:'center',alignItems:'center',height:120}}><Text>No favourites yet.</Text></View>
+            ) : favouriteBusinesses.slice(0, 3).map(biz => (
+              <TouchableOpacity
+                key={biz.id}
+                style={styles.favouriteCard}
+                onPress={() => navigation.navigate('SpecificRestaurantScreen', { businessId: biz.id })}
+              >
+                <ImageBackground 
+                  source={require('../../assets/loyalty-card.jpeg')} 
+                  style={styles.favouriteBackground}
+                  imageStyle={{ borderRadius: 15 }}
+                >
+                  <View style={styles.favouriteContent}>
+                    <View style={styles.favouriteHeader}>
+                      <Text style={styles.favouriteName}>{biz.name}</Text>
+                      {/* <FontAwesome name="star" size={16} color="#FF6B00" /> */}
+                    </View>
+                    <Text style={styles.favouritePoints}>{biz.points} pts</Text>
+                    <Text style={styles.favouritePointsToNext}>760 points till your next rewards</Text>
+                    <View style={styles.progressBarContainer}>
+                      <View style={styles.progressBarBackground}>
+                        <View style={styles.progressBar}></View>
+                      </View>
+                    </View>
+                    <View style={styles.favouriteFooter}>
+                      <View style={styles.favouriteFooterItem}>
+                        <MaterialIcons name="card-giftcard" size={18} color="#FFFFFF" />
+                        <Text style={styles.favouriteFooterText}>5 rewards</Text>
+                      </View>
+                      <View style={styles.favouriteFooterItem}>
+                        <FontAwesome name="tag" size={18} color="#FFFFFF" />
+                        <Text style={styles.favouriteFooterText}>3 deals</Text>
+                      </View>
+                    </View>
+                  </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
           
           {/* Rewards Section */}
