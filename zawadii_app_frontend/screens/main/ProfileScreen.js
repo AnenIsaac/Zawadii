@@ -272,6 +272,7 @@ const ProfileScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 40,
     flex: 1,
     backgroundColor: '#F7F7F7', // Light gray background for a modern feel
   },

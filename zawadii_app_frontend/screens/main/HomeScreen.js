@@ -36,6 +36,8 @@ const HomeScreen = ({ navigation }) => {
   const [favouriteBusinesses, setFavouriteBusinesses] = useState([]);
   const [favouriteLoading, setFavouriteLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [homeRewards, setHomeRewards] = useState([]);
+  const [loadingHomeRewards, setLoadingHomeRewards] = useState(true);
 
   useEffect(() => {
     const fetchPromotions = async () => {
@@ -76,7 +78,7 @@ const HomeScreen = ({ navigation }) => {
         const businessIds = customer.favourites;
         const { data: businesses, error: bizErr } = await supabase
           .from('businesses')
-          .select('id, name')
+          .select('id, name, cover_image_url')
           .in('id', businessIds);
         const { data: pointsRows, error: pointsErr } = await supabase
           .from('customer_points')
@@ -86,6 +88,7 @@ const HomeScreen = ({ navigation }) => {
         const favs = businesses.map(biz => ({
           id: biz.id,
           name: biz.name,
+          cover_image_url: biz.cover_image_url,
           points: pointsRows.find(p => p.business_id === biz.id)?.points || 0
         }));
         setFavouriteBusinesses(favs);
@@ -96,6 +99,36 @@ const HomeScreen = ({ navigation }) => {
       }
     };
     fetchFavourites();
+  }, []);
+
+  useEffect(() => {
+    async function fetchHomeRewards() {
+      setLoadingHomeRewards(true);
+      try {
+        // Fetch all available rewards from the rewards table, joined with business info
+        const { data, error } = await supabase
+          .from('rewards')
+          .select(`
+            id,
+            title,
+            image_url,
+            points_required,
+            business:businesses(id, name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (error) {
+          setHomeRewards([]);
+        } else {
+          setHomeRewards(data || []);
+        }
+      } catch (e) {
+        setHomeRewards([]);
+      } finally {
+        setLoadingHomeRewards(false);
+      }
+    }
+    fetchHomeRewards();
   }, []);
 
   const handlePromotionScroll = (event) => {
@@ -134,7 +167,7 @@ const HomeScreen = ({ navigation }) => {
           const businessIds = customer.favourites;
           const { data: businesses } = await supabase
             .from('businesses')
-            .select('id, name')
+            .select('id, name, cover_image_url')
             .in('id', businessIds);
           const { data: pointsRows } = await supabase
             .from('customer_points')
@@ -144,6 +177,7 @@ const HomeScreen = ({ navigation }) => {
           const favs = businesses.map(biz => ({
             id: biz.id,
             name: biz.name,
+            cover_image_url: biz.cover_image_url,
             points: pointsRows.find(p => p.business_id === biz.id)?.points || 0
           }));
           setFavouriteBusinesses(favs);
@@ -154,8 +188,46 @@ const HomeScreen = ({ navigation }) => {
       setFavouriteBusinesses([]);
       setFavouriteLoading(false);
     }
+    // Re-fetch rewards
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setHomeRewards([]);
+        setLoadingHomeRewards(false);
+        return;
+      }
+      // Fetch available rewards for the user (not yet redeemed)
+      const { data, error } = await supabase
+        .from('customer_rewards')
+        .select(`
+          id,
+          status,
+          points_spent,
+          claimed_at,
+          redeemed_at,
+          reward:rewards!inner(title, image_url, points_required),
+          business:businesses!inner(name)
+        `)
+        .eq('customer_id', user.id)
+        .eq('status', 'bought')
+        .order('claimed_at', { ascending: false })
+        .limit(5);
+      if (error) {
+        setHomeRewards([]);
+      } else {
+        setHomeRewards(data || []);
+      }
+    } catch (e) {
+      setHomeRewards([]);
+    } finally {
+      setLoadingHomeRewards(false);
+    }
     setRefreshing(false);
   };
+
+  // Remove unique business filter so all rewards (including multiple from the same business) are shown
+  // Show only the 4 most recent rewards
+  const rewardsToShow = homeRewards.slice(0, 4);
 
   return (
     <>
@@ -242,6 +314,12 @@ const HomeScreen = ({ navigation }) => {
           {/* Favourites Section */}
           <View style={styles.sectionTitleContainer}>
             <Text style={styles.sectionTitle}>Favourites</Text>
+            <TouchableOpacity
+              style={styles.seeMoreButton}
+              onPress={() => navigation.navigate('Favourites')}
+            >
+              <Text style={styles.seeMoreButtonText}>See more</Text>
+            </TouchableOpacity>
           </View>
           
           <ScrollView 
@@ -276,14 +354,13 @@ const HomeScreen = ({ navigation }) => {
                 onPress={() => navigation.navigate('SpecificRestaurantScreen', { businessId: biz.id })}
               >
                 <ImageBackground 
-                  source={require('../../assets/loyalty-card.jpeg')} 
+                  source={biz.cover_image_url ? { uri: biz.cover_image_url } : require('../../assets/loyalty-card.jpeg')} 
                   style={styles.favouriteBackground}
                   imageStyle={{ borderRadius: 15 }}
                 >
                   <View style={styles.favouriteContent}>
                     <View style={styles.favouriteHeader}>
                       <Text style={styles.favouriteName}>{biz.name}</Text>
-                      {/* <FontAwesome name="star" size={16} color="#FF6B00" /> */}
                     </View>
                     <Text style={styles.favouritePoints}>{biz.points} pts</Text>
                     <Text style={styles.favouritePointsToNext}>760 points till your next rewards</Text>
@@ -312,50 +389,41 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.sectionTitleContainer}>
             <Text style={styles.sectionTitle}>Rewards</Text>
           </View>
-          
           <ScrollView 
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.rewardsContainer}
+            contentContainerStyle={{ paddingLeft: 10, paddingRight: 16 }}
           >
-            {/* Reward Item - Free Chips */}
-            <View style={styles.rewardCard}>
-              <Image 
-                source={require('../../assets/fries1.jpeg')}
-                style={styles.rewardImage}
-              />
-              <Text style={styles.rewardTitle}>Free Chips</Text>
-              <Text style={styles.rewardSubtitle}>Shawarma 27</Text>
-              <View style={styles.rewardPoints}>
-                <Text style={styles.rewardPointsText}>20 pts</Text>
+            {loadingHomeRewards ? (
+              <View style={{ width: 180, justifyContent: 'center', alignItems: 'center', height: 160 }}>
+                <ActivityIndicator size="small" color="#FF8924" />
               </View>
-            </View>
-            
-            {/* Reward Item - Free Burger */}
-            <View style={styles.rewardCard}>
-              <Image 
-                source={require('../../assets/burger1.jpeg')}
-                style={styles.rewardImage}
-              />
-              <Text style={styles.rewardTitle}>Free Burger</Text>
-              <Text style={styles.rewardSubtitle}>Burger 53</Text>
-              <View style={styles.rewardPoints}>
-                <Text style={styles.rewardPointsText}>50 pts</Text>
+            ) : rewardsToShow.length === 0 ? (
+              <View style={{ width: 180, justifyContent: 'center', alignItems: 'center', height: 160 }}>
+                <Text style={{ color: '#888' }}>No rewards available.</Text>
               </View>
-            </View>
-            
-            {/* Reward Item - Free Soda */}
-            <View style={styles.rewardCard}>
-              <Image 
-                source={require('../../assets/soda1.jpeg')}
-                style={styles.rewardImage}
-              />
-              <Text style={styles.rewardTitle}>Free Soda</Text>
-              <Text style={styles.rewardSubtitle}>Shishi Food</Text>
-              <View style={styles.rewardPoints}>
-                <Text style={styles.rewardPointsText}>20 pts</Text>
-              </View>
-            </View>
+            ) : (
+              rewardsToShow.map((reward) => (
+                <TouchableOpacity
+                  key={reward.id}
+                  style={styles.largeRewardCard}
+                  onPress={() => {
+                    if (reward.business && reward.business.id) {
+                      navigation.navigate('SpecificRestaurantScreen', { businessId: reward.business.id });
+                    }
+                  }}
+                >
+                  <Image source={{ uri: reward.image_url }} style={styles.largeRewardImage} />
+                  <Text style={styles.largeRewardTitle} numberOfLines={1}>{reward.title}</Text>
+                  <Text style={styles.largeRewardSubtitle} numberOfLines={1}>{reward.business?.name || ''}</Text>
+                  <View style={styles.largeRewardPointsBadge}>
+                    <Ionicons name="star" size={16} color="#fff" style={{ marginRight: 3 }} />
+                    <Text style={styles.largeRewardPointsText}>{reward.points_required} pts</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
           
           {/* Add some padding at the bottom to ensure scrollability */}
@@ -363,31 +431,6 @@ const HomeScreen = ({ navigation }) => {
         </ScrollView>
       </LinearGradient>
       
-      {/* Bottom Navigation - Fixed */}
-      {/* <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="home" size={24} color="#FF8924" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-            style={styles.navItem} onPress={() => navigation.navigate('SearchScreen')}
-            >
-          <Ionicons name="search" size={24} color="#AAAAAA" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-            style={styles.navItem} 
-            onPress={() => navigation.navigate('ScanScreen')}
-        >
-          <View style={styles.qrButtonContainer}>
-            <Ionicons name="scan" size={28} color="#AAAAAA" />
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('RewardsScreen')}>
-          <Ionicons name="gift-outline" size={24} color="#AAAAAA" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProfileScreen')}>
-          <Ionicons name="person-outline" size={24} color="#AAAAAA" />
-        </TouchableOpacity>
-      </View> */}
     </SafeAreaView>
      {/* Sidebar */}
      <SimpleSidebar 
@@ -448,7 +491,7 @@ const styles = StyleSheet.create({
 //   promotionAmount: {
 //     color: 'white',
 //     fontSize: 22,
-//     fontWeight: 'bold',
+    fontWeight: 'bold',
 //   },
 //   promotionDescription: {
 //     color: 'white',
@@ -511,11 +554,29 @@ const styles = StyleSheet.create({
   sectionTitleContainer: {
     paddingHorizontal: 15,
     paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333333',
+  },
+  seeMoreButton: {
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 8,
+    // backgroundColor: '#ffffff',
+    alignSelf: 'center',
+  },
+  seeMoreButtonText: {
+    color: '#FF8924',
+    fontWeight: 'bold',
+    fontSize: 13,
+    borderBottomColor: '#FF8924',
+    borderBottomWidth: 1,
   },
   favouritesContainer: {
     paddingLeft: 15,
@@ -658,6 +719,153 @@ favouriteCard: {
     color: '#FF8924',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  modernRewardCard: {
+    width: 160,
+    marginRight: 14,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 8,
+  },
+  modernRewardImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: '#f6f6f6',
+  },
+  modernRewardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  modernRewardSubtitle: {
+    fontSize: 13,
+    color: '#FF8924',
+    marginBottom: 7,
+    textAlign: 'center',
+  },
+  modernRewardPointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF8924',
+    borderRadius: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    marginTop: 2,
+  },
+  modernRewardPointsText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  smallRewardCard: {
+    width: 90,
+    marginRight: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.10,
+    shadowRadius: 2,
+    elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 6,
+  },
+  smallRewardImage: {
+    width: 45,
+    height: 45,
+    borderRadius: 8,
+    marginBottom: 6,
+    backgroundColor: '#f6f6f6',
+  },
+  smallRewardTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#222',
+    marginBottom: 1,
+    textAlign: 'center',
+  },
+  smallRewardSubtitle: {
+    fontSize: 10,
+    color: '#FF8924',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  smallRewardPointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF8924',
+    borderRadius: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    marginTop: 1,
+  },
+  smallRewardPointsText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 10,
+  },
+  largeRewardCard: {
+    width: 120,
+    marginRight: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 6,
+    elevation: 4,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 10,
+  },
+  largeRewardImage: {
+    width: 100,
+    height: 90,
+    borderRadius: 14,
+    marginBottom: 12,
+    backgroundColor: '#f6f6f6',
+  },
+  largeRewardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 3,
+    textAlign: 'center',
+  },
+  largeRewardSubtitle: {
+    fontSize: 10,
+    color: '#FF8924',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  largeRewardPointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF8924',
+    borderRadius: 14,
+    paddingVertical: 2,
+    paddingHorizontal: 10,
+    marginTop: 3,
+  },
+  largeRewardPointsText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
 
