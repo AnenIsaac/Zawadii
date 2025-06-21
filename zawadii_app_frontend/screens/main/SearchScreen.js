@@ -216,6 +216,7 @@ const SearchScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 15,
     flex: 1,
     backgroundColor: '#FFFFFF',
   },

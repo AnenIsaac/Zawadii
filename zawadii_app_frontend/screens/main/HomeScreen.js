@@ -167,14 +167,9 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => setSidebarVisible(true)}>
           <Ionicons name="menu" size={28} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>ZAWADII</Text>
-        {/* <TouchableOpacity
-         onPress={() => {
-           navigation.navigate('NotificationsScreen');
-                }}
-        >
-          <Ionicons name="notifications-outline" size={28} color="white" />
-        </TouchableOpacity> */}
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={styles.headerTitle}>ZAWADII</Text>
+        </View>
       </View>
       
       {/* Main Content with Linear Gradient Background */}

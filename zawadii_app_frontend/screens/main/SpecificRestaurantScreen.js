@@ -128,7 +128,7 @@ export default function SpecificRestaurantScreen() {
   }, [])
 
   if (loading) {
-    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />;
+    return <ActivityIndicator size="large" color="#FF8C00" style={{ flex:1, justifyContent:'center', alignItems: "center" }} />;
   }
 
   // Deals data
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
   },
   topNavigation: {
     width: '100%',
-    paddingTop: '7%',
+    // paddingTop: '7%',
     // flexDirection: 'row',
     // justifyContent: 'space-between',
     // alignItems: 'flex-end',

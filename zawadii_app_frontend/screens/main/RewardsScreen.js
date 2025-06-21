@@ -93,7 +93,11 @@ export default function RewardsScreen() {
   };
 
   if (loading) {
-    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF8C00" />
+      </View>
+    );
   }
 
   if (!authUser) {
