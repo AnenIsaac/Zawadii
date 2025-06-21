@@ -92,7 +92,11 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen name="Rewards" component={RewardsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen} 
+        options={{ headerShown: false }} 
+      />
     </Tab.Navigator>
   );
 };

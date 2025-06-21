@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'; // Removed MaterialCommunityIcons as email icon can be from Ionicons
 import { supabase } from '../../supabaseClient'; 
@@ -207,7 +208,7 @@ const ProfileScreen = ({ navigation }) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading profile…</Text>
+        <ActivityIndicator size="large" color="#FF8924" />
       </SafeAreaView>
     );
   }
@@ -220,9 +221,9 @@ const ProfileScreen = ({ navigation }) => {
       >
         <ScrollView contentContainerStyle={styles.scrollContentContainer}>
           {/* Header */}
-          <View style={styles.header}>
+          {/* <View style={styles.header}>
             <Text style={styles.headerTitle}>My Profile</Text>
-          </View>
+          </View> */}
 
           {/* Profile Photo Section */}
           <View style={styles.profileSection}>

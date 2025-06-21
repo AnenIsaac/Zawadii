@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
+import LottieView from 'lottie-react-native';
 
 export default function Favourites({ navigation }) {
   const [favouriteBusinesses, setFavouriteBusinesses] = useState([]);
@@ -78,7 +79,17 @@ export default function Favourites({ navigation }) {
         {loading ? (
           <ActivityIndicator style={{ marginTop: 40 }} />
         ) : favouriteBusinesses.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 40 }}>No favourites yet.</Text>
+          <View style={{ alignItems: 'center', marginTop: 40 }}>
+            <LottieView
+              source={require('../../assets/lottie/empty.json')}
+              autoPlay
+              loop
+              style={{ width: 120, height: 120, marginBottom: 10 }}
+            />
+            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#FF8924', marginBottom: 4 }}>
+              You don't have any favourites right now
+            </Text>
+          </View>
         ) : favouriteBusinesses.map((restaurant) => (
           <TouchableOpacity key={restaurant.id} style={styles.restaurantCard} onPress={() => navigation?.navigate?.('SpecificRestaurantScreen', { businessId: restaurant.id })}>
             <ImageBackground 

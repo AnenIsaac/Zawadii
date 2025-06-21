@@ -11,11 +11,14 @@ import {
   StatusBar,
   ImageBackground,
   RefreshControl,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getValidPromotions } from '../../utils/getValidPromotions';
 import { supabase } from '../../supabaseClient';
+import LottieView from 'lottie-react-native';
 
 // Constants for promotion carousel
 const PROMOTION_CARD_WIDTH = 300; // from styles.promotionCard.width
@@ -165,13 +168,13 @@ const HomeScreen = ({ navigation }) => {
           <Ionicons name="menu" size={28} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>ZAWADII</Text>
-        <TouchableOpacity
+        {/* <TouchableOpacity
          onPress={() => {
            navigation.navigate('NotificationsScreen');
                 }}
         >
           <Ionicons name="notifications-outline" size={28} color="white" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       
       {/* Main Content with Linear Gradient Background */}
@@ -255,9 +258,22 @@ const HomeScreen = ({ navigation }) => {
             contentContainerStyle={{ paddingRight: 15 }}
           >
             {favouriteLoading ? (
-              <View style={{justifyContent:'center',alignItems:'center',height:120}}><Text>Loading...</Text></View>
+              <View style={{justifyContent:'center',alignItems:'center',height:160, width: Dimensions.get('window').width, alignSelf: 'center', flexDirection: 'column'}}>
+                <ActivityIndicator size="large" color="#FF8924" />
+              </View>
             ) : favouriteBusinesses.length === 0 ? (
-              <View style={{justifyContent:'center',alignItems:'center',height:120}}><Text>No favourites yet.</Text></View>
+              <View style={{justifyContent:'center',alignItems:'center',height:160, width: Dimensions.get('window').width, alignSelf: 'center', flexDirection: 'column'}}>
+                <LottieView
+                  source={require('../../assets/lottie/empty.json')}
+                  autoPlay
+                  loop
+                  style={{width:100,height:100,marginBottom:10}}
+                />
+                <Text style={{fontWeight:'bold',fontSize:16,color:'#FF8924',marginBottom:4, textAlign: 'center'}}>No Favourites Yet</Text>
+                <Text style={{color:'#888',fontSize:14,textAlign:'center',maxWidth:180, height: 40}}>
+                  Add a restaurant to favourites to see it here!
+                </Text>
+              </View>
             ) : favouriteBusinesses.slice(0, 3).map(biz => (
               <TouchableOpacity
                 key={biz.id}
@@ -396,7 +412,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#FF8924',
     paddingHorizontal: 15,
@@ -405,6 +421,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerTitle: {
+    justifyContent: 'center',
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
