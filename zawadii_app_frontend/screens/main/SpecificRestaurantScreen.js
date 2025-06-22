@@ -368,7 +368,11 @@ export default function SpecificRestaurantScreen() {
             </TouchableOpacity>
 
             <Image
-              source={require("../../assets/burger-friends.jpg")}
+              source={
+                restaurant?.cover_image_url
+                  ? { uri: restaurant.cover_image_url }
+                  : require("../../assets/burger-friends.jpg")
+              }
               style={styles.headerImage}
               resizeMode="cover"
             />
@@ -460,7 +464,11 @@ export default function SpecificRestaurantScreen() {
 
       {/* Background header image */}
       <ImageBackground
-        source={require("../../assets/background.jpg")}
+        source={
+          restaurant?.cover_image_url
+            ? { uri: restaurant.cover_image_url }
+            : require("../../assets/background.jpg")
+        }
         style={styles.headerBackground}
       >
         <View style={styles.headerOverlay}>
@@ -534,13 +542,17 @@ export default function SpecificRestaurantScreen() {
             <View style={styles.statItem}>
               <Ionicons name="gift-outline" size={20} color="white" />
               <Text style={styles.statText}>
-                {rewardsData.length} reward{rewardsData.length === 1 ? "" : "s"}
+                {rewardsData.filter((r) => r.is_active).length} reward
+                {rewardsData.filter((r) => r.is_active).length === 1 ? "" : "s"}
               </Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="pricetag-outline" size={20} color="white" />
               <Text style={styles.statText}>
-                {promotions.length} {promotions.length === 1 ? "deal" : "deals"}
+                {promotions.filter((p) => p.status === "ACTIVE").length}{" "}
+                {promotions.filter((p) => p.status === "ACTIVE").length === 1
+                  ? "deal"
+                  : "deals"}
               </Text>
             </View>
           </View>
@@ -571,7 +583,7 @@ export default function SpecificRestaurantScreen() {
                       marginLeft: 4,
                     }}
                   >
-                    Favourite
+                    {isFavourited ? "Unfavourite" : "Favourite"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1020,7 +1032,7 @@ const styles = StyleSheet.create({
   },
   topNavigation: {
     width: "100%",
-    paddingTop: 30,
+    // paddingTop: 20,
     // flexDirection: 'row',
     // justifyContent: 'space-between',
     // alignItems: 'flex-end',
@@ -1033,7 +1045,7 @@ const styles = StyleSheet.create({
   greetingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 30,
   },
   giftIconContainer: {
     marginRight: 8,

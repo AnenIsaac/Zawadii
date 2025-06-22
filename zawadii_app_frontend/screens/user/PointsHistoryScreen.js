@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     // justifyContent: 'center',
   },
   merchantName: {
-    width: '95%',
+    // width: '95%',
     fontSize: 15,
     fontWeight: 'bold',
     color: '#000',
@@ -218,6 +218,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rightContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    width: 80,
     alignItems: 'flex-end',
     justifyContent: 'center',
     // paddingLeft: 8,
@@ -245,11 +248,13 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     color: '#666',
+    textAlign: 'right',
   },
   timeText: {
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+    textAlign: 'right',
   },
   tabBar: {
     flexDirection: 'row',

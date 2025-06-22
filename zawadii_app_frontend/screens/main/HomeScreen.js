@@ -92,12 +92,14 @@ const HomeScreen = ({ navigation }) => {
               .from('rewards')
               .select('id', { head: true, count: 'exact' })
               .eq('business_id', biz.id)
+              .eq('is_active', true);
 
             // 2) count promotions
             const { count: dealsCount } = await supabase
               .from('promotions')
               .select('id', { head: true, count: 'exact' })
               .eq('business_id', biz.id)
+              .eq('status', 'ACTIVE');
 
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
@@ -199,12 +201,14 @@ const HomeScreen = ({ navigation }) => {
               .from('rewards')
               .select('id', { head: true, count: 'exact' })
               .eq('business_id', biz.id)
+              .eq('is_active', true);
 
             // 2) count promotions
             const { count: dealsCount } = await supabase
               .from('promotions')
               .select('id', { head: true, count: 'exact' })
               .eq('business_id', biz.id)
+              .eq('status', 'ACTIVE');
 
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0

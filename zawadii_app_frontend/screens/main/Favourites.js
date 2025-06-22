@@ -68,13 +68,15 @@ export default function Favourites({ navigation }) {
             const { count: rewardsCount } = await supabase
               .from("rewards")
               .select("id", { head: true, count: "exact" })
-              .eq("business_id", biz.id);
+              .eq("business_id", biz.id)
+              .eq('is_active', true);;
 
             // 2) count promotions
             const { count: dealsCount } = await supabase
               .from("promotions")
               .select("id", { head: true, count: "exact" })
-              .eq("business_id", biz.id);
+              .eq("business_id", biz.id)
+              .eq('status', 'ACTIVE');;
 
             // 3) find this user’s points
             const points =
