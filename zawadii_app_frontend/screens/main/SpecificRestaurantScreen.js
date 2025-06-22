@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, Pressable, ImageBackground, StatusBar, Modal, Linking, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, Pressable, ImageBackground, StatusBar, Modal, Linking, StyleSheet, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 import { useNavigation } from "@react-navigation/native";
@@ -15,6 +15,7 @@ export default function SpecificRestaurantScreen() {
   const [rewardsData, setRewardsData] = useState([]);
   const [customerPoints, setCustomerPoints] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
   const [activeTab, setActiveTab] = useState('rewards'); // 'rewards' or 'deals'
   
@@ -37,107 +38,105 @@ export default function SpecificRestaurantScreen() {
   const navigation = useNavigation();
   
 
-  useEffect(() => {
-    const loadAll = async () => {
-      try{
-        // 1) get auth user
-        const { data: { user }, error: userErr } = await supabase.auth.getUser()
-        if (userErr || !user) {
-          Alert.alert('Error', 'You must be signed in to view your rewards.')
-          return
-        }
-        setAuthUser(user)
-        // Fetch customer row to get favourites
-        const { data: customer, error: custErr } = await supabase
-          .from('customers')
-          .select('favourites')
-          .eq('id', user.id)
-          .single();
-        if (custErr) {
-          console.error('Error loading customer favourites:', custErr);
-        } else {
-          setFavourites(customer?.favourites || []);
-        }
-        // 2) kick off business + rewards in parallel
-        const businessPromise = supabase
-          .from('businesses')
-          .select(`
-            id, name, description, logo_url, cover_image_url,
-            phone_number, email, instagram, whatsapp, x, tiktok,
-            points_conversion, created_at
-          `)
-          .eq('id', BUSINESS_ID)
-          .single()
-
-        const rewardsPromise = supabase
-          .from('rewards')
-          .select('*')
-          .eq('business_id', BUSINESS_ID)
-
-        const [ { data: business, error: bizErr },
-                { data: rewards, error: rewardsErr } ] =
-          await Promise.all([businessPromise, rewardsPromise])
-
-        if (bizErr) {
-          console.error('Error loading business:', bizErr)
-          Alert.alert('Error', 'Could not load restaurant info.')
-          return
-        }
-        if (rewardsErr) {
-          console.error('Error loading rewards:', rewardsErr)
-          // you can still continue, maybe there just aren't any
-        }
-
-        setRestaurant(business)
-        setRewardsData(rewards || [])
-
-        // 3) now load customer points
-        const { data: cpData, error: cpErr } = await supabase
-          .from('customer_points')
-          .select('points')
-          .eq('customer_id', user.id)
-          .eq('business_id', BUSINESS_ID)
-          .maybeSingle()
-
-        if (cpErr) {
-          console.error('Error loading customer points:', cpErr)
-        } else {
-          setCustomerPoints(cpData?.points ?? 0)
-        }
-
-        // 4) now load promotions for this business
-        const { data: promos, error: promoErr } = await supabase
-          .from('promotions')
-          .select('*')
-          .eq('business_id', BUSINESS_ID);
-
-        if (promoErr) {
-          console.error('Error loading promotions:', promoErr);
-        } else {
-          setPromotions(promos);
-        }
-
-      } catch (err) {
-        console.error('Unexpected error in loadAll:', err)
-      } finally {
-        setLoading(false)
+  const loadAll = async () => {
+    try{
+      // 1) get auth user
+      const { data: { user }, error: userErr } = await supabase.auth.getUser()
+      if (userErr || !user) {
+        Alert.alert('Error', 'You must be signed in to view your rewards.')
+        return
       }
-    }
+      setAuthUser(user)
+      // Fetch customer row to get favourites
+      const { data: customer, error: custErr } = await supabase
+        .from('customers')
+        .select('favourites')
+        .eq('id', user.id)
+        .single();
+      if (custErr) {
+        console.error('Error loading customer favourites:', custErr);
+      } else {
+        setFavourites(customer?.favourites || []);
+      }
+      // 2) kick off business + rewards in parallel
+      const businessPromise = supabase
+      .from('businesses')
+      .select(`
+        id, name, description, logo_url, cover_image_url,
+        phone_number, email, instagram, whatsapp, x, tiktok,
+        points_conversion, created_at
+        `)
+        .eq('id', BUSINESS_ID)
+        .single()
 
+      const rewardsPromise = supabase
+      .from('rewards')
+      .select('*')
+      .eq('business_id', BUSINESS_ID)
+
+      const [ { data: business, error: bizErr },
+              { data: rewards, error: rewardsErr } ] =
+        await Promise.all([businessPromise, rewardsPromise])
+
+      if (bizErr) {
+        console.error('Error loading business:', bizErr)
+        Alert.alert('Error', 'Could not load restaurant info.')
+        return
+      }
+      if (rewardsErr) {
+        console.error('Error loading rewards:', rewardsErr)
+        // you can still continue, maybe there just aren't any
+      }
+
+      setRestaurant(business)
+      setRewardsData(rewards || [])
+      
+      // 3) now load customer points
+      const { data: cpData, error: cpErr } = await supabase
+      .from('customer_points')
+      .select('points')
+        .eq('customer_id', user.id)
+        .eq('business_id', BUSINESS_ID)
+        .maybeSingle()
+
+      if (cpErr) {
+        console.error('Error loading customer points:', cpErr)
+      } else {
+        setCustomerPoints(cpData?.points ?? 0)
+      }
+
+      // 4) now load promotions for this business
+      const { data: promos, error: promoErr } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('business_id', BUSINESS_ID);
+
+      if (promoErr) {
+        console.error('Error loading promotions:', promoErr);
+      } else {
+        setPromotions(promos);
+      }
+      
+    } catch (err) {
+      console.error('Unexpected error in loadAll:', err)
+    } finally {
+      setLoading(false)
+      setRefreshing(false);
+    }
+  }
+    
+  useEffect(() => {
     loadAll()
   }, [])
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#FF8C00" style={{ flex:1, justifyContent:'center', alignItems: "center" }} />;
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadAll();
   }
 
-  // Deals data
-  const dealsList = [
-    require('../../assets/happy-man.jpeg'),
-    require('../../assets/fish-wednesday.jpg'),
-    require('../../assets/breakfast-bundle.jpg'),
-  ];
-  
+  if (loading) {
+    return <ActivityIndicator size="large" color="#FF8C00" style={{ flex:1, justifyContent:'center', alignItems: "center" }} />;
+  }  
   
   // Handler for when a reward item is pressed
   const handleRewardPress = (reward) => {
@@ -207,8 +206,6 @@ export default function SpecificRestaurantScreen() {
         reward_code_id: codeRow.id
       }])
       .select();
-
-
 
       console.log('🆕 customer_rewards inserted →', buyErr, crRows);
 
@@ -541,7 +538,16 @@ export default function SpecificRestaurantScreen() {
       </View>
       
       {/* Scrollable content */}
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView 
+        style={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF8C00']}
+          />
+        }
+      >
         {activeTab === 'rewards' ? (
           rewardsData.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -638,7 +644,7 @@ export default function SpecificRestaurantScreen() {
             </Pressable>
 
             <Text style={styles.modalTitle1}>
-              {modalType === 'buy' ? `${restaurant.name} Deals` : `${restaurant.name} Rewards`}
+              {modalType === 'buy' ? `${restaurant.name} Rewards` : `${restaurant.name} Deals`}
             </Text>
 
             <View style={styles.imageContainer1}>
@@ -1137,7 +1143,8 @@ const styles = StyleSheet.create({
   },
   modalView1: {
     width: '75%',
-    height: '55%',
+    // height: '55%',
+    minHeight: 300,
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 25,
@@ -1176,6 +1183,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   modalTitle1: {
+    textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 15,

@@ -77,7 +77,9 @@ export default function Favourites({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} />
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#FF8C00" />
+          </View>
         ) : favouriteBusinesses.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 40 }}>
             <LottieView

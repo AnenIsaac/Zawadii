@@ -85,13 +85,35 @@ const HomeScreen = ({ navigation }) => {
           .select('business_id, points')
           .eq('customer_id', user.id)
           .in('business_id', businessIds);
-        const favs = businesses.map(biz => ({
-          id: biz.id,
-          name: biz.name,
-          cover_image_url: biz.cover_image_url,
-          points: pointsRows.find(p => p.business_id === biz.id)?.points || 0
-        }));
-        setFavouriteBusinesses(favs);
+        const favsWithCounts = await Promise.all(
+          businesses.map(async biz => {
+            // 1) count rewards
+            const { count: rewardsCount } = await supabase
+              .from('rewards')
+              .select('id', { head: true, count: 'exact' })
+              .eq('business_id', biz.id)
+
+            // 2) count promotions
+            const { count: dealsCount } = await supabase
+              .from('promotions')
+              .select('id', { head: true, count: 'exact' })
+              .eq('business_id', biz.id)
+
+            // 3) find this user’s points
+            const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
+
+            return {
+              id:        biz.id,
+              name:      biz.name,
+              points,
+              rewardsCount,
+              dealsCount,
+            }
+          })
+        )
+
+        setFavouriteBusinesses(favsWithCounts)
+
       } catch (e) {
         setFavouriteBusinesses([]);
       } finally {
@@ -140,30 +162,25 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const refreshHomeScreen = async () => {
-    setRefreshing(true);
-    // Re-fetch promotions
+    setRefreshing(true)
+    setLoadingPromotions(true)
+    setFavouriteLoading(true)
+    setLoadingHomeRewards(true)
+
     try {
+      // Re-fetch promotions
       const promos = await getValidPromotions(4);
       setPromotionsData(promos || []);
-    } catch (e) {
-      setPromotionsData([]);
-    }
-    // Re-fetch favourites
-    try {
+
+      // Re-fetch favourites and counts
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) {
-        setFavouriteBusinesses([]);
-        setFavouriteLoading(false);
-      } else {
-        const { data: customer, error: custErr } = await supabase
+      if (!userErr && user) {
+        const { data: customer } = await supabase
           .from('customers')
           .select('favourites')
           .eq('id', user.id)
           .single();
-        if (custErr || !customer?.favourites?.length) {
-          setFavouriteBusinesses([]);
-          setFavouriteLoading(false);
-        } else {
+        if (customer?.favourites?.length) {
           const businessIds = customer.favourites;
           const { data: businesses } = await supabase
             .from('businesses')
@@ -174,56 +191,62 @@ const HomeScreen = ({ navigation }) => {
             .select('business_id, points')
             .eq('customer_id', user.id)
             .in('business_id', businessIds);
-          const favs = businesses.map(biz => ({
-            id: biz.id,
-            name: biz.name,
-            cover_image_url: biz.cover_image_url,
-            points: pointsRows.find(p => p.business_id === biz.id)?.points || 0
-          }));
-          setFavouriteBusinesses(favs);
-          setFavouriteLoading(false);
+
+          const favsWithCounts = await Promise.all(businesses.map(async biz => {
+            // 1) count rewards
+            const { count: rewardsCount } = await supabase
+              .from('rewards')
+              .select('id', { head: true, count: 'exact' })
+              .eq('business_id', biz.id)
+
+            // 2) count promotions
+            const { count: dealsCount } = await supabase
+              .from('promotions')
+              .select('id', { head: true, count: 'exact' })
+              .eq('business_id', biz.id)
+
+            // 3) find this user’s points
+            const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
+
+            return {
+              id: biz.id,
+              name: biz.name,
+              points,
+              rewardsCount,
+              dealsCount,
+            }
+          }))
+          setFavouriteBusinesses(favsWithCounts)
+        } else {
+          setFavouriteBusinesses([])
         }
+      } else {
+        setFavouriteBusinesses([])
       }
-    } catch (e) {
-      setFavouriteBusinesses([]);
-      setFavouriteLoading(false);
-    }
-    // Re-fetch rewards
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setHomeRewards([]);
-        setLoadingHomeRewards(false);
-        return;
-      }
-      // Fetch available rewards for the user (not yet redeemed)
-      const { data, error } = await supabase
-        .from('customer_rewards')
+
+      // Home rewards
+      const { data: rewards } = await supabase
+        .from('rewards')
         .select(`
           id,
-          status,
-          points_spent,
-          claimed_at,
-          redeemed_at,
-          reward:rewards!inner(title, image_url, points_required),
-          business:businesses!inner(name)
+          title,
+          image_url,
+          points_required,
+          business:businesses(id, name)
         `)
-        .eq('customer_id', user.id)
-        .eq('status', 'bought')
-        .order('claimed_at', { ascending: false })
-        .limit(5);
-      if (error) {
-        setHomeRewards([]);
-      } else {
-        setHomeRewards(data || []);
-      }
+        .order('created_at', { ascending: false })
+        .limit(10);
+      setHomeRewards(rewards || []);
+
     } catch (e) {
-      setHomeRewards([]);
+      console.error('Refresh error:', e)
     } finally {
-      setLoadingHomeRewards(false);
+      setLoadingPromotions(false)
+      setFavouriteLoading(false)
+      setLoadingHomeRewards(false)
+      setRefreshing(false)
     }
-    setRefreshing(false);
-  };
+  }
 
   // Remove unique business filter so all rewards (including multiple from the same business) are shown
   // Show only the 4 most recent rewards
@@ -372,11 +395,15 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.favouriteFooter}>
                       <View style={styles.favouriteFooterItem}>
                         <MaterialIcons name="card-giftcard" size={18} color="#FFFFFF" />
-                        <Text style={styles.favouriteFooterText}>5 rewards</Text>
+                        <Text style={styles.favouriteFooterText}>
+                          {biz.rewardsCount} reward{biz.rewardsCount === 1 ? '' : 's'}
+                        </Text>
                       </View>
                       <View style={styles.favouriteFooterItem}>
                         <FontAwesome name="tag" size={18} color="#FFFFFF" />
-                        <Text style={styles.favouriteFooterText}>3 deals</Text>
+                        <Text style={styles.favouriteFooterText}>
+                          {biz.dealsCount} deal{biz.dealsCount === 1 ? '' : 's'}
+                        </Text>
                       </View>
                     </View>
                   </View>
