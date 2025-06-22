@@ -59,6 +59,8 @@ export default function PointsHistoryScreen() {
     switch (type) {
       case 'purchase_receipt_scan':
         return 'Receipt scanned';
+      case 'dashboard_entry':
+        return 'Gifted points';
       // add more mappings as needed
       default:
         return type.replace(/_/g, ' ');
@@ -66,7 +68,7 @@ export default function PointsHistoryScreen() {
   };
 
   if (loading) {
-    return <ActivityIndicator style={{ flex:1, justifyContent:'center' }} />;
+    return <ActivityIndicator size="large" color="#FF8C00" style={{ flex:1, justifyContent:'center', alignItems: "center" }} />;
   }
 
   return (
@@ -227,12 +229,13 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   statusBadge: {
-    width: '60%',
+    alignSelf: 'flex-start', // Fit to content width
+    flexShrink: 1, // Allow shrinking if needed
+    maxWidth: '70%', // Don't exceed 70% of container
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
     marginTop: 10,
-    // marginBottom: 5,
   },
   statusText: {
     fontSize: 12,

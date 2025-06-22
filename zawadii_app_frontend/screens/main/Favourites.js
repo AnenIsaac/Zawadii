@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   ImageBackground,
   SafeAreaView,
   StatusBar,
-  ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../supabaseClient';
-import LottieView from 'lottie-react-native';
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../../supabaseClient";
+import LottieView from "lottie-react-native";
 
 export default function Favourites({ navigation }) {
   const [favouriteBusinesses, setFavouriteBusinesses] = useState([]);
@@ -22,16 +22,19 @@ export default function Favourites({ navigation }) {
     const fetchFavourites = async () => {
       setLoading(true);
       try {
-        const { data: { user }, error: userErr } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: userErr,
+        } = await supabase.auth.getUser();
         if (userErr || !user) {
           setFavouriteBusinesses([]);
           setLoading(false);
           return;
         }
         const { data: customer, error: custErr } = await supabase
-          .from('customers')
-          .select('favourites')
-          .eq('id', user.id)
+          .from("customers")
+          .select("favourites")
+          .eq("id", user.id)
           .single();
         if (custErr || !customer?.favourites?.length) {
           setFavouriteBusinesses([]);
@@ -40,26 +43,54 @@ export default function Favourites({ navigation }) {
         }
         const businessIds = customer.favourites;
         const { data: businesses } = await supabase
-          .from('businesses')
-          .select('id, name')
-          .in('id', businessIds);
+          .from("businesses")
+          .select("id, name, cover_image_url")
+          .in("id", businessIds);
         const { data: pointsRows } = await supabase
-          .from('customer_points')
-          .select('business_id, points')
-          .eq('customer_id', user.id)
-          .in('business_id', businessIds);
+          .from("customer_points")
+          .select("business_id, points")
+          .eq("customer_id", user.id)
+          .in("business_id", businessIds);
         // Dummy image assignment for now
-        const images = [require('../../assets/fav1.jpg'), require('../../assets/fav2.jpg'), require('../../assets/fav3.jpg'), require('../../assets/fav1.jpg')];
-        const favs = businesses.map((biz, i) => ({
-          id: biz.id,
-          name: biz.name,
-          points: pointsRows.find(p => p.business_id === biz.id)?.points || 0,
-          pointsTillReward: 500, // dummy
-          rewards: 5, // dummy
-          deals: 3, // dummy
-          image: images[i % images.length],
-        }));
-        setFavouriteBusinesses(favs);
+        // const images = [require('../../assets/fav1.jpg'), require('../../assets/fav2.jpg'), require('../../assets/fav3.jpg'), require('../../assets/fav1.jpg')];
+        // const favs = businesses.map((biz, i) => ({
+        //   id: biz.id,
+        //   name: biz.name,
+        //   points: pointsRows.find(p => p.business_id === biz.id)?.points || 0,
+        //   pointsTillReward: 500, // dummy
+        //   rewards: 5, // dummy
+        //   deals: 3, // dummy
+        //   image: images[i % images.length],
+        // }));
+        const favsWithCounts = await Promise.all(
+          businesses.map(async (biz) => {
+            // 1) count rewards
+            const { count: rewardsCount } = await supabase
+              .from("rewards")
+              .select("id", { head: true, count: "exact" })
+              .eq("business_id", biz.id);
+
+            // 2) count promotions
+            const { count: dealsCount } = await supabase
+              .from("promotions")
+              .select("id", { head: true, count: "exact" })
+              .eq("business_id", biz.id);
+
+            // 3) find this user’s points
+            const points =
+              pointsRows.find((p) => p.business_id === biz.id)?.points || 0;
+
+            return {
+              id: biz.id,
+              name: biz.name,
+              image: biz.cover_image_url || require("../../assets/fav1.jpg"),
+              points,
+              rewardsCount,
+              dealsCount,
+            };
+          })
+        );
+        setFavouriteBusinesses(favsWithCounts);
       } catch (e) {
         setFavouriteBusinesses([]);
       } finally {
@@ -72,63 +103,105 @@ export default function Favourites({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#FF8C00" />
-          </View>
-        ) : favouriteBusinesses.length === 0 ? (
-          <View style={{ alignItems: 'center', marginTop: 40 }}>
-            <LottieView
-              source={require('../../assets/lottie/empty.json')}
-              autoPlay
-              loop
-              style={{ width: 120, height: 120, marginBottom: 10 }}
-            />
-            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#FF8924', marginBottom: 4 }}>
-              You don't have any favourites right now
-            </Text>
-          </View>
-        ) : favouriteBusinesses.map((restaurant) => (
-          <TouchableOpacity key={restaurant.id} style={styles.restaurantCard} onPress={() => navigation?.navigate?.('SpecificRestaurantScreen', { businessId: restaurant.id })}>
-            <ImageBackground 
-              source={restaurant.image} 
-              style={styles.restaurantImage}
-              imageStyle={styles.restaurantImageStyle}
-            >
-              <View style={styles.cardOverlay}>
-                <Text style={styles.restaurantName}>{restaurant.name}</Text>
-                <Text style={styles.pointsText}>{restaurant.points}pts</Text>
-                <Text style={styles.pointsTillRewardText}>
-                  {restaurant.pointsTillReward} points till your next rewards
-                </Text>
-                <View style={styles.progressBarBackground}>
-                  <View 
-                    style={[
-                      styles.progressBar, 
-                      {width: `${(restaurant.points / (restaurant.points + restaurant.pointsTillReward)) * 100}%`}
-                    ]} 
-                  />
-                </View>
-                <View style={styles.benefitsContainer}>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="gift-outline" size={18} color="white" />
-                    <Text style={styles.benefitText}>{restaurant.rewards} rewards</Text>
+      {loading ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color="#FF8C00" />
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          {favouriteBusinesses.length === 0 ? (
+            <View style={{ alignItems: "center", marginTop: 40 }}>
+              <LottieView
+                source={require("../../assets/lottie/empty.json")}
+                autoPlay
+                loop
+                style={{ width: 120, height: 120, marginBottom: 10 }}
+              />
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: 16,
+                  color: "#FF8924",
+                  marginBottom: 4,
+                }}
+              >
+                You don't have any favourites right now
+              </Text>
+            </View>
+          ) : (
+            favouriteBusinesses.map((restaurant) => (
+              <TouchableOpacity
+                key={restaurant.id}
+                style={styles.restaurantCard}
+                onPress={() =>
+                  navigation?.navigate?.("SpecificRestaurantScreen", {
+                    businessId: restaurant.id,
+                  })
+                }
+              >
+                <ImageBackground
+                  source={
+                    restaurant.image
+                      ? { uri: restaurant.image }
+                      : require("../../assets/fav1.jpg")
+                  }
+                  style={styles.restaurantImage}
+                  imageStyle={styles.restaurantImageStyle}
+                >
+                  <View style={styles.cardOverlay}>
+                    <Text style={styles.restaurantName}>{restaurant.name}</Text>
+                    <Text style={styles.pointsText}>
+                      {restaurant.points.toLocaleString()} pts
+                    </Text>
+                    <Text style={styles.pointsTillRewardText}>
+                      Use your points to get rewards
+                    </Text>
+                    {/* <View style={styles.progressBarBackground}>
+                      <View
+                        style={[
+                          styles.progressBar,
+                          {
+                            width: `${
+                              (restaurant.points /
+                                (restaurant.points +
+                                  restaurant.pointsTillReward)) *
+                              100
+                            }%`,
+                          },
+                        ]}
+                      />
+                    </View> */}
+                    <View style={styles.benefitsContainer}>
+                      <View style={styles.benefitItem}>
+                        <Ionicons name="gift-outline" size={18} color="white" />
+                        <Text style={styles.benefitText}>
+                          {restaurant.rewardsCount} reward{restaurant.rewardsCount === 1 ? "" : "s"}
+                        </Text>
+                      </View>
+                      <View style={styles.benefitItem}>
+                        <Ionicons
+                          name="pricetag-outline"
+                          size={18}
+                          color="white"
+                        />
+                        <Text style={styles.benefitText}>
+                          {restaurant.dealsCount} deal{restaurant.dealsCount === 1 ? "" : "s"}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="pricetag-outline" size={18} color="white" />
-                    <Text style={styles.benefitText}>{restaurant.deals} deals</Text>
-                  </View>
-                </View>
-              </View>
-            </ImageBackground>
-          </TouchableOpacity>
-        ))}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+                </ImageBackground>
+              </TouchableOpacity>
+            ))
+          )}
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -136,7 +209,7 @@ export default function Favourites({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "#f8f8f8",
   },
   scrollView: {
     flex: 1,
@@ -149,16 +222,16 @@ const styles = StyleSheet.create({
     // overflow: 'hidden',
     marginBottom: 16,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   restaurantImage: {
     flex: 1,
-    width: '100%',
-    resizeMode: 'cover',
-    justifyContent: 'flex-end',
+    width: "100%",
+    resizeMode: "cover",
+    justifyContent: "flex-end",
   },
   restaurantImageStyle: {
     borderRadius: 15,
@@ -166,53 +239,53 @@ const styles = StyleSheet.create({
   cardOverlay: {
     flex: 1,
     padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
     borderRadius: 15,
+    height: "100%",
   },
   restaurantName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
     marginBottom: 19,
   },
   pointsText: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "#FFA100",
     marginBottom: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pointsTillRewardText: {
     fontSize: 12,
-    color: 'white',
+    color: "white",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   progressBarBackground: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: "rgba(255,255,255,0.3)",
     borderRadius: 4,
     marginBottom: 12,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#FF8C00',
+    backgroundColor: "#FF8C00",
     borderRadius: 4,
   },
   benefitsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "flex-start",
   },
   benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 16,
   },
   benefitText: {
     fontSize: 12,
-    color: 'white',
+    color: "white",
     marginLeft: 4,
   },
 });
-

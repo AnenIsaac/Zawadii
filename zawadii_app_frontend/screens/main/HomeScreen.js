@@ -103,8 +103,9 @@ const HomeScreen = ({ navigation }) => {
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
 
             return {
-              id:        biz.id,
-              name:      biz.name,
+              id: biz.id,
+              name: biz.name,
+              image: biz.cover_image_url,
               points,
               rewardsCount,
               dealsCount,
@@ -211,6 +212,7 @@ const HomeScreen = ({ navigation }) => {
             return {
               id: biz.id,
               name: biz.name,
+              image: biz.cover_image_url,
               points,
               rewardsCount,
               dealsCount,
@@ -377,7 +379,7 @@ const HomeScreen = ({ navigation }) => {
                 onPress={() => navigation.navigate('SpecificRestaurantScreen', { businessId: biz.id })}
               >
                 <ImageBackground 
-                  source={biz.cover_image_url ? { uri: biz.cover_image_url } : require('../../assets/loyalty-card.jpeg')} 
+                  source={biz.image ? { uri: biz.image } : require('../../assets/loyalty-card.jpeg')} 
                   style={styles.favouriteBackground}
                   imageStyle={{ borderRadius: 15 }}
                 >
@@ -385,13 +387,13 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.favouriteHeader}>
                       <Text style={styles.favouriteName}>{biz.name}</Text>
                     </View>
-                    <Text style={styles.favouritePoints}>{biz.points} pts</Text>
-                    <Text style={styles.favouritePointsToNext}>760 points till your next rewards</Text>
-                    <View style={styles.progressBarContainer}>
+                    <Text style={styles.favouritePoints}>{biz.points.toLocaleString()} pts</Text>
+                    <Text style={styles.favouritePointsToNext}>Use your points to buy rewards</Text>
+                    {/* <View style={styles.progressBarContainer}>
                       <View style={styles.progressBarBackground}>
                         <View style={styles.progressBar}></View>
                       </View>
-                    </View>
+                    </View> */}
                     <View style={styles.favouriteFooter}>
                       <View style={styles.favouriteFooterItem}>
                         <MaterialIcons name="card-giftcard" size={18} color="#FFFFFF" />
@@ -446,7 +448,7 @@ const HomeScreen = ({ navigation }) => {
                   <Text style={styles.largeRewardSubtitle} numberOfLines={1}>{reward.business?.name || ''}</Text>
                   <View style={styles.largeRewardPointsBadge}>
                     <Ionicons name="star" size={16} color="#fff" style={{ marginRight: 3 }} />
-                    <Text style={styles.largeRewardPointsText}>{reward.points_required} pts</Text>
+                    <Text style={styles.largeRewardPointsText}>{reward.points_required.toLocaleString()} pts</Text>
                   </View>
                 </TouchableOpacity>
               ))
@@ -637,6 +639,9 @@ favouriteCard: {
   favouriteContent: {
     padding: 15, // Padding inside the card
     backgroundColor: 'rgba(0,0,0,0.4)', // Semi-transparent overlay for text readability
+    height: '100%',
+    // alignItems: 'center',
+    justifyContent: 'center',
   },
   favouriteHeader: {
     flexDirection: 'row',
@@ -652,7 +657,7 @@ favouriteCard: {
   favouritePoints: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFA100',
     marginBottom: 5,
     textAlign: 'center',
   },
