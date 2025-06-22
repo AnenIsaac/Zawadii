@@ -60,7 +60,7 @@ export default function PointsHistoryScreen() {
       case 'purchase_receipt_scan':
         return 'Receipt scanned';
       case 'dashboard_entry':
-        return 'Gifted points';
+        return 'Dashboard entry';
       // add more mappings as needed
       default:
         return type.replace(/_/g, ' ');

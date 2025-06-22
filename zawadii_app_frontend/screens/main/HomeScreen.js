@@ -13,6 +13,8 @@ import {
   RefreshControl,
   Dimensions,
   ActivityIndicator,
+  Pressable,
+  Modal,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,6 +35,8 @@ const HomeScreen = ({ navigation }) => {
   const promotionsScrollViewRef = useRef(null);
   const [promotionsData, setPromotionsData] = useState([]);
   const [loadingPromotions, setLoadingPromotions] = useState(true);
+  const [dealsModalVisible, setDealsModalVisible] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState(null);
   const [favouriteBusinesses, setFavouriteBusinesses] = useState([]);
   const [favouriteLoading, setFavouriteLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -164,6 +168,11 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const handlePromotionPress = promo => {
+    setSelectedDeal(promo);
+    setDealsModalVisible(true);
+  };
+
   const refreshHomeScreen = async () => {
     setRefreshing(true)
     setLoadingPromotions(true)
@@ -287,43 +296,49 @@ const HomeScreen = ({ navigation }) => {
         >
           {/* Promotions Carousel */}
           {loadingPromotions ? (
-    <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
-      <Text>Loading promotions...</Text>
-    </View>
-  ) : promotionsData.length === 0 ? (
-    <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
-      <Text>No promotions available.</Text>
-    </View>
-  ) : (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.promotionsContainer}
-      ref={promotionsScrollViewRef}
-      snapToInterval={PROMOTION_SNAP_INTERVAL}
-      decelerationRate="fast"
-      onMomentumScrollEnd={handlePromotionScroll}
-      contentContainerStyle={{ paddingRight: PROMOTION_CARD_MARGIN_LEFT }}
-    >
-      {promotionsData.map((promotion) => (
-        <View
-          key={promotion.id}
-          style={styles.promotionCard}
-        >
-          {promotion.image_url ? (
-            <Image
-              source={{ uri: promotion.image_url }}
-              style={styles.promotionImage}
-            />
-          ) : (
-            <View style={[styles.promotionImage, {backgroundColor:'#eee', justifyContent:'center', alignItems:'center'}]}>
-              <Text>No Image</Text>
+            <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
+              <Text>Loading promotions...</Text>
             </View>
+          ) : promotionsData.length === 0 ? (
+            <View style={{height: 180, justifyContent: 'center', alignItems: 'center'}}>
+              <Text>No promotions available.</Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.promotionsContainer}
+              ref={promotionsScrollViewRef}
+              snapToInterval={PROMOTION_SNAP_INTERVAL}
+              decelerationRate="fast"
+              onMomentumScrollEnd={handlePromotionScroll}
+              contentContainerStyle={{ paddingRight: PROMOTION_CARD_MARGIN_LEFT }}
+            >
+              {promotionsData.map((promotion) => (
+                <TouchableOpacity
+                  key={promotion.id}
+                  onPress={() => handlePromotionPress(promotion)}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    key={promotion.id}
+                    style={styles.promotionCard}
+                  >
+                    {promotion.image_url ? (
+                      <Image
+                        source={{ uri: promotion.image_url }}
+                        style={styles.promotionImage}
+                      />
+                    ) : (
+                      <View style={[styles.promotionImage, {backgroundColor:'#eee', justifyContent:'center', alignItems:'center'}]}>
+                        <Text>No Image</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           )}
-        </View>
-      ))}
-    </ScrollView>
-  )}
 
           {/* Carousel Indicators */}
           {promotionsData.length > 1 && (
@@ -463,6 +478,53 @@ const HomeScreen = ({ navigation }) => {
           <View style={{ height: 20 }} />
         </ScrollView>
       </LinearGradient>
+
+      {/* Deals Detail Modal */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={dealsModalVisible}
+        onRequestClose={() => setDealsModalVisible(false)}
+      >
+        <View style={styles.centeredViewDeal}>
+          <View style={styles.modalViewDeal}>
+            <Pressable
+              style={styles.closeButtonDeal}
+              onPress={() => setDealsModalVisible(false)}
+            >
+              <Text style={styles.closeButtonTextDeal}>✕</Text>
+            </Pressable>
+
+            {selectedDeal?.image_url && (
+              <Image
+                source={{ uri: selectedDeal.image_url }}
+                style={styles.dealImageModal}
+                resizeMode="cover"
+              />
+            )}
+
+            <Text style={styles.dealTitleModal}>{selectedDeal?.title}</Text>
+            <Text style={styles.dealDescription}>{selectedDeal?.description}</Text>
+
+            {(selectedDeal?.start_date || selectedDeal?.end_date) && (
+              <View style={styles.dealDatesContainer}>
+                {selectedDeal?.start_date && (
+                  <View style={styles.dealDateBlock}>
+                    <Text style={styles.dealDateLabel}>Starts</Text>
+                    <Text style={styles.dealDateValue}>{selectedDeal.start_date}</Text>
+                  </View>
+                )}
+                {selectedDeal?.end_date && (
+                  <View style={styles.dealDateBlock}>
+                    <Text style={styles.dealDateLabel}>Ends</Text>
+                    <Text style={styles.dealDateValue}>{selectedDeal.end_date}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
       
     </SafeAreaView>
      {/* Sidebar */}
@@ -515,39 +577,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-//   promotionTextContainer: {
-//     position: 'absolute',
-//     left: 15,
-//     top: 15,
-//     zIndex: 2,
-//   },
-//   promotionAmount: {
-//     color: 'white',
-//     fontSize: 22,
-    fontWeight: 'bold',
-//   },
-//   promotionDescription: {
-//     color: 'white',
-//     fontSize: 14,
-//   },
-//   promotionValidity: {
-//     color: 'white',
-//     fontSize: 10,
-//     marginTop: 10,
-//   },
-//
-
-
-    promotionImage: {
-        width: '100%', // Make it stretch across the full width
-        height: '100%', // Make it cover the full height
-        position: 'absolute', // Ensure it fills the container
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        bottom: 0,
-        resizeMode: 'cover', // Ensure the image covers the space properly
-    },
+  promotionImage: {
+    width: '100%', // Make it stretch across the full width
+    height: '100%', // Make it cover the full height
+    position: 'absolute', // Ensure it fills the container
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0,
+    resizeMode: 'cover', // Ensure the image covers the space properly
+  },
   
   promotionTagContainer: {
     position: 'absolute',
@@ -902,6 +941,78 @@ favouriteCard: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+
+  centeredViewDeal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalViewDeal: {
+    width: '85%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    overflow: 'hidden',
+    paddingBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    elevation: 5,
+  },
+  closeButtonDeal: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  closeButtonTextDeal: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  dealImageModal: {
+    width: '100%',
+    height: 200,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  dealTitleModal: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 15,
+  },
+  dealDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 10,
+    paddingHorizontal: 20,
+    color: '#555',
+  },
+  dealDatesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+    paddingHorizontal: 20,
+  },
+  dealDateBlock: {
+    alignItems: 'center',
+  },
+  dealDateLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  dealDateValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
   },
 });
 

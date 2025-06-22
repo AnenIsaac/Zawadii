@@ -227,7 +227,7 @@ const ProfileScreen = ({ navigation }) => {
 
           {/* Profile Photo Section */}
           <View style={styles.profileSection}>
-            <View style={styles.profileImageContainer}>
+            {/* <View style={styles.profileImageContainer}>
               <Image 
                 source={require('../../assets/happy-man.jpeg')} // Replace with actual profile image if available
                 style={styles.profileImage}
@@ -235,6 +235,19 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity style={styles.cameraIconContainer}>
                 <Ionicons name="camera" size={20} color="#fff" />
               </TouchableOpacity>
+            </View> */}
+            <View style={styles.profileImageContainer}>
+              {userData.gender === 'Female' ? (
+                <Ionicons name="woman" size={60} color="#FF8C00" />
+              ) : userData.gender === 'Male' ? (
+                <Ionicons name="man"   size={60} color="#FF8C00" />
+              ) : (
+                // fallback if no gender set
+                <Image 
+                  source={require('../../assets/happy-man.jpeg')}
+                  style={styles.profileImage}
+                />
+              )}
             </View>
             <Text style={styles.profileName}>{userData.name}</Text>
             <Text style={styles.profileEmail}>{userData.email}</Text>
@@ -312,7 +325,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50, // Circular image
-    backgroundColor: '#E0E0E0',
+    // backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
