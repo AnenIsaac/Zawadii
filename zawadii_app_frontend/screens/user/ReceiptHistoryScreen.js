@@ -6,9 +6,11 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const ReceiptHistoryScreen = ({ navigation }) => {
   const [receipts, setReceipts] = useState([]);
+  const [unverifiedReceipts, setUnverifiedReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [rescanLoading, setRescanLoading] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -34,44 +36,41 @@ const ReceiptHistoryScreen = ({ navigation }) => {
       setRefreshing(false);
       return;
     }
-
     setLoading(true);
     try {
-      // First, get business details to map tin to business_name
+      // Fetch businesses for mapping
       const { data: businesses, error: businessesError } = await supabase
         .from('businesses')
-        .select('tin, name'); // MODIFIED: Select tin and name
-
-      if (businessesError) {
-        throw businessesError;
-      }
-
-      // MODIFIED: Create a map from tin to name
+        .select('tin, name');
+      if (businessesError) throw businessesError;
       const businessTinMap = businesses.reduce((map, business) => {
-        if (business.tin) { // Ensure tin is not null or undefined
-          map[business.tin] = business.name;
-        }
+        if (business.tin) map[business.tin] = business.name;
         return map;
       }, {});
-
-      // Then, fetch receipts for the user
+      // Fetch verified receipts
       const { data, error } = await supabase
         .from('receipts')
-        .select('*') // Assuming tin_num is selected if available in the table
+        .select('*')
         .eq('customer_id', currentUserId)
         .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-      
-      // MODIFIED: Enrich receipts using tin_num to find business_name
+      if (error) throw error;
       const enrichedReceipts = data.map(receipt => ({
         ...receipt,
         business_name: businessTinMap[receipt.tin_num] || 'Unknown Business',
+        isUnverified: false,
       }));
-
       setReceipts(enrichedReceipts);
+      // Fetch unverified receipts
+      const { data: unver, error: unverError } = await supabase
+        .from('unverified_receipts')
+        .select('*')
+        .eq('customer_id', currentUserId)
+        .order('created_at', { ascending: false });
+      if (!unverError && unver) {
+        setUnverifiedReceipts(unver.map(r => ({ ...r, isUnverified: true })));
+      } else {
+        setUnverifiedReceipts([]);
+      }
     } catch (error) {
       console.error('--- Error caught in fetchReceipts ---');
       // Attempt to log the full error object structure if possible
@@ -118,20 +117,62 @@ const ReceiptHistoryScreen = ({ navigation }) => {
     }
   }, [userId, fetchReceipts]);
 
-  const renderReceiptItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.receiptItem}
-      onPress={() => Alert.alert(item.business_name, `Amount: ${item.total_incl_tax.toLocaleString()}\nPoints: ${item.points}\nDate: ${new Date(item.created_at).toLocaleDateString()}`)}
-    >
-      <View style={styles.receiptInfo}>
-        <Text style={styles.businessName}>{item.business_name}</Text>
-        <Text style={styles.receiptDetail}>Amount: {item.total_incl_tax.toLocaleString()}</Text>
-        <Text style={styles.receiptDetail}>Points: {item.points}</Text>
-        {/* <Text style={styles.receiptDetail}>Receipt number: {item.receipt_no}</Text> */}
-      </View>
-      <Text style={styles.receiptDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
-    </TouchableOpacity>
-  );
+  // Helper to rescan an unverified receipt
+  const handleRescan = async (scanned_url) => {
+    setRescanLoading(true);
+    try {
+      const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${encodeURIComponent(scanned_url)}`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error('Could not fetch receipt data.');
+      const receiptData = await response.json();
+      const tin = receiptData?.company_info?.tin || null;
+      if (!tin) {
+        Alert.alert('Error', 'Could not extract TIN from the receipt.');
+        setRescanLoading(false);
+        return;
+      }
+      setRescanLoading(false);
+      navigation.navigate('ValidTRAReceipt', { receiptData, tin, scannedUrl: scanned_url });
+    } catch (e) {
+      setRescanLoading(false);
+      Alert.alert('Error', 'Failed to rescan receipt. Please try again.');
+    }
+  };
+
+  const renderReceiptItem = ({ item }) => {
+    if (item.isUnverified) {
+      // Unverified receipt card
+      return (
+        <View style={styles.unverifiedReceiptItem}>
+          <View style={styles.receiptInfo}>
+            <Text style={styles.unverifiedTitle}>Unverified Receipt</Text>
+            <Text style={styles.unverifiedUrl} numberOfLines={1}>{item.scanned_url}</Text>
+            <Text style={styles.unverifiedDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.rescanButton}
+            onPress={() => handleRescan(item.scanned_url)}
+          >
+            <Text style={styles.rescanButtonText}>Rescan</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    // Verified receipt card
+    return (
+      <TouchableOpacity 
+        style={styles.receiptItem}
+        onPress={() => Alert.alert(item.business_name, `Amount: ${item.total_incl_tax.toLocaleString()}` + (item.points ? `\nPoints: ${item.points}` : '') + `\nDate: ${new Date(item.created_at).toLocaleDateString()}`)}
+      >
+        <View style={styles.receiptInfo}>
+          <Text style={styles.businessName}>{item.business_name}</Text>
+          <Text style={styles.receiptDetail}>Amount: {item.total_incl_tax.toLocaleString()}</Text>
+          {item.points !== undefined && <Text style={styles.receiptDetail}>Points: {item.points}</Text>}
+        </View>
+        <Text style={styles.receiptDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading && receipts.length === 0 && !refreshing) {
     return (
@@ -161,10 +202,16 @@ const ReceiptHistoryScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {rescanLoading && (
+        <View style={styles.rescanLoadingOverlay}>
+          <ActivityIndicator size="large" color="#FFA500" />
+          <Text style={{ color: '#FFA500', marginTop: 10, fontWeight: 'bold' }}>Loading receipt...</Text>
+        </View>
+      )}
       <FlatList
-        data={receipts}
+        data={[...unverifiedReceipts, ...receipts]}
         renderItem={renderReceiptItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => (item.id ? item.id.toString() : item.scanned_url)}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -203,6 +250,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
   },
+  unverifiedReceiptItem: {
+    backgroundColor: '#FFF7E6',
+    borderColor: '#FFA500',
+    borderWidth: 1,
+    padding: 15,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    borderRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#FFA500',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
   receiptInfo: {
     flex: 1,
   },
@@ -219,6 +283,46 @@ const styles = StyleSheet.create({
   receiptDate: {
     fontSize: 12,
     color: '#888',
+  },
+  unverifiedTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFA500',
+  },
+  unverifiedUrl: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
+    maxWidth: 180,
+  },
+  unverifiedDate: {
+    fontSize: 12,
+    color: '#FFA500',
+    marginTop: 4,
+  },
+  rescanButton: {
+    backgroundColor: '#FFA500',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rescanButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  rescanLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

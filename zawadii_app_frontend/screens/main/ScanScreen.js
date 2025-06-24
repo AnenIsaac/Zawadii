@@ -311,9 +311,24 @@ const ScanScreen = ({ navigation }) => {
                     setScanned(false);
                     return;
                   }
+                  // Check if this scanned_url already exists for this user
+                  const { data: existing, error: existingError } = await supabase
+                    .from('unverified_receipts')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('scanned_url', modalInfo.scannedUrl)
+                    .maybeSingle();
+                  if (existing) {
+                    Alert.alert('Already Saved', 'This receipt is already in your unverified receipts.');
+                    setIsLoading(false);
+                    setModalInfo({ ...modalInfo, visible: false });
+                    setScanned(false);
+                    return;
+                  }
+                  // Use user.id for both user_id and customer_id (to match ValidTRAReceipt logic)
                   const { error: insertError } = await supabase
                     .from('unverified_receipts')
-                    .insert([{ user_id: user.id, scanned_url: modalInfo.scannedUrl, status: 'pending' }]);
+                    .insert([{ user_id: user.id, customer_id: user.id, scanned_url: modalInfo.scannedUrl, status: 'pending' }]);
                   setIsLoading(false);
                   if (insertError) {
                     Alert.alert('Error', 'Could not save receipt. Please try again.');
