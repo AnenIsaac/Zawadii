@@ -26,6 +26,7 @@ const ScanScreen = ({ navigation }) => {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Added isLoading state
+  const [modalInfo, setModalInfo] = useState({ visible: false, title: '', message: '', allowSave: false, scannedUrl: '' });
   const appState = useRef(AppState.currentState);
   const isFocused = useIsFocused(); // Hook to check if screen is focused
 
@@ -99,124 +100,108 @@ const ScanScreen = ({ navigation }) => {
 
   const handleBarCodeScanned = async (scanEvent) => {
     if (!scanEvent || typeof scanEvent.data === 'undefined') {
-      console.warn("handleBarCodeScanned: Received undefined or incomplete scan event:", scanEvent);
-      setScanned(false); // Allow further scans
+      setScanned(false);
       return;
     }
-
-    if (isLoading || !isFocused) return; // Prevent multiple triggers or if not focused
-
-    setScanned(true); // Keep scanned true to prevent multiple rapid scans
+    if (isLoading || !isFocused) return;
+    setScanned(true);
     const scannedUrl = scanEvent.data;
-    console.log('Scanned URL:', scannedUrl);
+    console.log('Scanned QR Data:', scannedUrl);
 
-    if (!scannedUrl.startsWith('https://verify.tra.go.tz/')) {
-      Alert.alert('Invalid QR Code', 'This QR code does not seem to be a valid TRA receipt.', [
-        { text: 'OK', onPress: () => setScanned(false) },
-      ]);
+    // 1. Check for verify.tra.go.tz (case-insensitive, robust, trim whitespace)
+    const urlToCheck = scannedUrl.trim().toLowerCase();
+    if (!urlToCheck.includes('verify.tra.go.tz')) {
+      setModalInfo({
+        visible: true,
+        title: 'Invalid Receipt',
+        message: 'This receipt is not from TRA.',
+        allowSave: false,
+        scannedUrl: ''
+      });
       return;
     }
 
-    setIsLoading(true); // Set loading true before API call
-    const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${scannedUrl}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
-
-    try {
-      console.log('Fetching receipt data from:', apiUrl);
-      const response = await fetch(apiUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Could not retrieve error details.');
-        console.error('API request failed:', response.status, errorText);
-        Alert.alert(
-          'API Error',
-          `Failed to fetch receipt data. Status: ${response.status}. ${errorText}`,
-          [{ text: 'OK', onPress: () => setScanned(false) }]
-        );
-        return;
-      }
-
-      const receiptData = await response.json();
-      console.log('Receipt Data:', receiptData);
-
-      if (receiptData && receiptData.company_info && receiptData.company_info.tin && receiptData.totals && receiptData.totals.total_incl_of_tax) {
-        const tin = receiptData.company_info.tin;
-        const amountSpent = receiptData.totals.total_incl_of_tax;
-
-        console.log('Extracted TIN:', tin);
-        console.log('Extracted Amount Spent:', amountSpent);
-
-        // Navigate to the confirmation screen with all necessary data
-        navigation.navigate('ValidTRAReceipt', {
-          receiptData, // Full data for display and further processing
-          tin,
-          amountSpent,
-          scannedUrl, // Original scanned URL for reference or re-query if needed
-        });
-        // setScanned(false) will be handled by the navigation or when returning to this screen
-      } else {
-        console.error('Invalid or incomplete data from API:', receiptData);
-        Alert.alert('Processing Error', 'Could not extract necessary details from the receipt data.', [
-          { text: 'OK', onPress: () => setScanned(false) },
-        ]);
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.error('API request timed out:', error);
-        // Attempt to save the unverified receipt
-        try {
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            console.error('Error getting user for saving unverified receipt:', userError);
-            Alert.alert(
-              'Request Timeout & Save Failed',
-              'The receipt scan timed out. We could not save it for later as no user session was found.',
-              [{ text: 'OK', onPress: () => setScanned(false) }]
-            );
-            return;
+    // 2. Extract TIN (handle both TIN=... and no TIN param)
+    let tin = null;
+    let receiptData = null;
+    const tinMatch = urlToCheck.match(/tin=([0-9]+)/i);
+    if (tinMatch && tinMatch[1]) {
+      tin = tinMatch[1];
+    } else {
+      // Try to fetch TIN from the API if not present in URL
+      setIsLoading(true);
+      try {
+        const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${encodeURIComponent(scannedUrl)}`;
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          receiptData = await response.json();
+          if (receiptData && receiptData.company_info && receiptData.company_info.tin) {
+            tin = receiptData.company_info.tin;
           }
-
-          const { error: insertError } = await supabase
-            .from('unverified_receipts')
-            .insert([{ user_id: user.id, scanned_url: scannedUrl, status: 'pending' }]); // Assuming a 'status' column
-
-          if (insertError) {
-            console.error('Error saving unverified receipt to Supabase:', insertError);
-            Alert.alert(
-              'Request Timeout & Save Failed',
-              'The receipt scan timed out. We tried to save it for later, but an error occurred. Please try scanning again.',
-              [{ text: 'OK', onPress: () => setScanned(false) }]
-            );
-          } else {
-            console.log('Unverified receipt saved for user:', user.id, 'URL:', scannedUrl);
-            Alert.alert(
-              'Request Timeout',
-              'The receipt scan timed out. We have saved it, and you can try processing it again later from your profile.',
-              [{ text: 'OK', onPress: () => setScanned(false) }]
-            );
-          }
-        } catch (saveError) {
-          console.error('Unexpected error during saving unverified receipt:', saveError);
-          Alert.alert(
-            'Request Timeout & Save Error',
-            'The receipt scan timed out. An unexpected error occurred while trying to save it for later. Please try scanning again.',
-            [{ text: 'OK', onPress: () => setScanned(false) }]
-          );
         }
-      } else {
-        console.error('Error fetching or processing receipt data:', error);
-        Alert.alert('Error', 'The receipt may be invalid or there was a problem fetching the data. Please try again.', [
-          { text: 'OK', onPress: () => setScanned(false) },
-        ]);
+      } catch (e) {
+        // ignore, will show error below if tin is still null
       }
-    } finally {
-      setIsLoading(false); // Reset loading state in finally block
+      setIsLoading(false);
     }
+    if (!tin) {
+      setModalInfo({
+        visible: true,
+        title: 'Invalid Receipt',
+        message: 'Could not extract TIN from the receipt.',
+        allowSave: false,
+        scannedUrl: ''
+      });
+      return;
+    }
+    setIsLoading(true);
+    // 3. Check TIN in businesses
+    const { data: business, error } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('tin', tin)
+      .single();
+    setIsLoading(false);
+    if (!business) {
+      setModalInfo({
+        visible: true,
+        title: 'Business Not Registered',
+        message: 'This business is not registered with us yet. You can save this receipt and try again later.',
+        allowSave: true,
+        scannedUrl
+      });
+      return;
+    }
+    // 4. If business found, always fetch receipt data for navigation
+    if (!receiptData) {
+      setIsLoading(true);
+      try {
+        const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${encodeURIComponent(scannedUrl)}`;
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          receiptData = await response.json();
+        }
+      } catch (e) {}
+      setIsLoading(false);
+    }
+    if (!receiptData || !receiptData.company_info || !receiptData.totals) {
+      setModalInfo({
+        visible: true,
+        title: 'Invalid Receipt',
+        message: 'Invalid receipt data provided.',
+        allowSave: false,
+        scannedUrl: ''
+      });
+      return;
+    }
+    navigation.navigate('ValidTRAReceipt', {
+      receiptData,
+      tin,
+      businessId: business.id,
+      scannedUrl
+    });
   };
-  
+
   const cancelScanning = () => {
     navigation.goBack();
   };
@@ -296,6 +281,67 @@ const ScanScreen = ({ navigation }) => {
            <Text style={styles.instructionsText}>Align QR code within frame</Text>
          </View>
        )}
+
+      {/* Modal for invalid/unknown receipts */}
+      <Modal
+        visible={modalInfo.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalInfo({ ...modalInfo, visible: false })}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 28, alignItems: 'center', width: 320, elevation: 8 }}>
+            {modalInfo.title === 'Business Not Registered' ? (
+              <Ionicons name="storefront-outline" size={70} color="#FFA500" style={{ marginBottom: 10 }} />
+            ) : (
+              <Ionicons name="close-circle-outline" size={70} color="#FF4C4C" style={{ marginBottom: 10 }} />
+            )}
+            <Text style={{ fontWeight: 'bold', fontSize: 22, marginBottom: 10, color: '#333', textAlign: 'center' }}>{modalInfo.title}</Text>
+            <Text style={{ fontSize: 16, color: '#666', marginBottom: 24, textAlign: 'center' }}>{modalInfo.message}</Text>
+            {modalInfo.allowSave && (
+              <TouchableOpacity
+                style={{ backgroundColor: '#FFA500', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, width: '100%', alignItems: 'center', marginBottom: 10 }}
+                onPress={async () => {
+                  setIsLoading(true);
+                  const { data: { user }, error: userError } = await supabase.auth.getUser();
+                  if (userError || !user) {
+                    Alert.alert('Error', 'Could not save receipt. Please log in.');
+                    setIsLoading(false);
+                    setModalInfo({ ...modalInfo, visible: false });
+                    setScanned(false);
+                    return;
+                  }
+                  const { error: insertError } = await supabase
+                    .from('unverified_receipts')
+                    .insert([{ user_id: user.id, scanned_url: modalInfo.scannedUrl, status: 'pending' }]);
+                  setIsLoading(false);
+                  if (insertError) {
+                    Alert.alert('Error', 'Could not save receipt. Please try again.');
+                  } else {
+                    Alert.alert('Saved', 'Receipt saved! You can try again later from your history.');
+                  }
+                  setModalInfo({ ...modalInfo, visible: false });
+                  setScanned(false);
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Save Receipt</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={{ marginTop: 5, alignItems: 'center' }}
+              onPress={() => {
+                setModalInfo({ ...modalInfo, visible: false });
+                setScanned(false);
+              }}
+            >
+              <Text style={{ color: modalInfo.title === 'Business Not Registered' ? '#FFA500' : '#FF4C4C', fontWeight: 'bold', fontSize: 15 }}>Close</Text>
+            </TouchableOpacity>
+            {modalInfo.title === 'Business Not Registered' && (
+              <Text style={{ color: '#888', fontSize: 14, marginTop: 10, textAlign: 'center' }}></Text>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
