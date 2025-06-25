@@ -187,7 +187,7 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         total_excl_tax: parseAmount(receiptData.totals.total_excl_of_tax),
         total_tax: parseAmount(receiptData.totals.total_tax),
         total_incl_tax: parseAmount(receiptData.totals.total_incl_of_tax),
-        points: pointsToAward, // MODIFIED: Save calculated pointsToAward to the points column
+        points: pointsToAward,
         verification_code: receiptData.verification?.code,
         source_url: scannedUrl,
       };
@@ -240,15 +240,15 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
 
       Alert.alert('Success!', `Receipt saved and ${pointsToAward} points awarded from ${businessName}.`);
       // navigation.popToTop(); // Or navigate to a specific success/home screen
-      // navigation.navigate('HomeScreen', { refresh: true });
 
       // Navigate to HomeScreen within MainTabs navigator
-      // Assumes 'MainTabs' is the route name for your tab navigator in the parent AppStack
-      navigation.navigate('Main', {
-        screen: 'HomeScreen',
-        params: { refresh: true },
-      });
+      // navigation.navigate('Main', {
+      //   screen: 'HomeScreen',
+      //   params: { refresh: true },
+      // });
 
+    // Navigate to SpecificRestaurantScreen and pass the businessId
+    navigation.navigate('SpecificRestaurantScreen', { businessId });
 
     } catch (error) {
       console.error('Error saving receipt and awarding points:', error);

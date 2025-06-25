@@ -28,6 +28,27 @@ export default function RewardsScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
 
+  const toTZDate = (isoString, offsetHours=3) => {
+    // Parse the UTC timestamp...
+    const dt = new Date(isoString);
+    // ...then shift it by offsetHours
+    dt.setHours(dt.getHours() + offsetHours);
+    return dt;
+  };
+
+  const formatTimeTZ = (isoString) => {
+    const dt = toTZDate(isoString, /*UTC+3*/ 3);
+    return dt.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDateTZ = (isoString) => {
+    const dt = toTZDate(isoString, 3);
+    return dt.toLocaleDateString();
+  };
+
   const loadRewards = async () => {
     const {
       data: { user },
@@ -182,31 +203,19 @@ export default function RewardsScreen() {
               <View style={styles.cardMeta}>
                 <Text style={styles.cardBusiness}>{cr.business.name}</Text>
                 {cr.status === "bought" && (
-                  <Text style={styles.cardSubtitle}>
-                    Bought at{" "}
-                    {new Date(cr.claimed_at).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
+                  <Text style={styles.cardSubtitle}>Bought at {formatTimeTZ(cr.claimed_at)}</Text>
                 )}
                 {cr.status === "redeemed" && (
-                  <Text style={styles.cardSubtitle}>
-                    Redeemed at{" "}
-                    {new Date(cr.redeemed_at).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
+                  <Text style={styles.cardSubtitle}>Redeemed at {formatTimeTZ(cr.redeemed_at)}</Text>
                 )}
               </View>
             </View>
 
             <View style={styles.lastRow}>
               <Text style={styles.cardDate}>
-                {new Date(
+                {formatDateTZ(
                   cr.status === "bought" ? cr.claimed_at : cr.redeemed_at
-                ).toLocaleDateString()}
+                )}
               </Text>
 
               {cr.status === "bought" ? (
