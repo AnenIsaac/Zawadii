@@ -12,6 +12,20 @@ const ReceiptHistoryScreen = ({ navigation }) => {
   const [userId, setUserId] = useState(null);
   const [rescanLoading, setRescanLoading] = useState(false);
 
+  // --- timezone helpers ---
+  const toTZDate = (isoString, offsetHours = 3) => {
+    const dt = new Date(isoString);
+    dt.setHours(dt.getHours() + offsetHours);
+    return dt;
+  };
+  const formatTimeTZ = (isoString) =>
+    toTZDate(isoString, 3).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  const formatDateTZ = (isoString) =>
+    toTZDate(isoString, 3).toLocaleDateString();
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -147,7 +161,7 @@ const ReceiptHistoryScreen = ({ navigation }) => {
           <View style={styles.receiptInfo}>
             <Text style={styles.unverifiedTitle}>Unverified Receipt</Text>
             <Text style={styles.unverifiedUrl} numberOfLines={1}>{item.scanned_url}</Text>
-            <Text style={styles.unverifiedDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+            <Text style={styles.unverifiedDate}>{formatDateTZ(item.created_at)} {formatTimeTZ(item.created_at)}</Text>
           </View>
           <TouchableOpacity
             style={styles.rescanButton}
@@ -162,14 +176,14 @@ const ReceiptHistoryScreen = ({ navigation }) => {
     return (
       <TouchableOpacity 
         style={styles.receiptItem}
-        onPress={() => Alert.alert(item.business_name, `Amount: ${item.total_incl_tax.toLocaleString()}` + (item.points ? `\nPoints: ${item.points}` : '') + `\nDate: ${new Date(item.created_at).toLocaleDateString()}`)}
+        onPress={() => Alert.alert(item.business_name, `Amount: ${item.total_incl_tax.toLocaleString()}` + (item.points ? `\nPoints: ${item.points}` : '') + `\nDate: ${formatDateTZ(item.created_at)} ${formatTimeTZ(item.created_at)}`)}
       >
         <View style={styles.receiptInfo}>
           <Text style={styles.businessName}>{item.business_name}</Text>
           <Text style={styles.receiptDetail}>Amount: {item.total_incl_tax.toLocaleString()}</Text>
           {item.points !== undefined && <Text style={styles.receiptDetail}>Points: {item.points}</Text>}
         </View>
-        <Text style={styles.receiptDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+        <Text style={styles.receiptDate}>{formatDateTZ(item.created_at)} {formatTimeTZ(item.created_at)}</Text>
       </TouchableOpacity>
     );
   };
