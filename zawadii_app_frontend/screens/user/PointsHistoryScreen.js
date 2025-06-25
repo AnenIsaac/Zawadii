@@ -8,6 +8,22 @@ export default function PointsHistoryScreen() {
   const [authUser, setAuthUser] = useState(null);
   const [interactions, setInteractions] = useState([]);
 
+  // --- timezone helpers ---
+  const toTZDate = (isoString, offsetHours = 3) => {
+    const dt = new Date(isoString);
+    dt.setHours(dt.getHours() + offsetHours);
+    return dt;
+  };
+  const formatTimeTZ = (isoString) => {
+    return toTZDate(isoString, 3).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+  const formatDateTZ = (isoString) => {
+    return toTZDate(isoString, 3).toLocaleDateString();
+  };
+
   // Function to get status color and label
   // const getStatusStyle = (status) => {
   //   switch (status) {
@@ -85,16 +101,8 @@ export default function PointsHistoryScreen() {
       >
         {interactions.map((tx) => {
           {/* const statusStyle = getStatusStyle(interactions.status); */}
-          const dt = new Date(tx.created_at);
           const logo = tx.business.logo_url
-          const dateStr = dt.toLocaleDateString();
-          const timeStr = dt.toLocaleTimeString(undefined, {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-
           {/* console.log('logo url:', tx.business.logo_url); */}
-
           
           return (
             <View key={tx.id} style={styles.transactionCard}>
@@ -108,34 +116,20 @@ export default function PointsHistoryScreen() {
               
               {/* Transaction Details */}
               <View style={styles.detailsContainer}>
-                {/* <Text style={styles.merchantName}>{humanizeType(tx.interaction_type)}</Text> */}
                 <Text style={styles.merchantName}>{tx.business.name}</Text>
-                {/* {transaction.source ? (
-                  <Text style={styles.sourceText}>{transaction.source}</Text>
-                ) : null} */}
                 <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
                   <Text style={[styles.statusText, { color: '#4CAF50' }]}>
                     {humanizeType(tx.interaction_type)}
                   </Text>
                 </View>
-                {/* <Text style={styles.transactionIdText}>{tx.points_awarded > 0 ? '+' : ''} {tx.points_awarded} points</Text> */}
               </View>
               
               <View style={styles.rightContainer}>
                 <Text style={styles.pointsText}>
                   {tx.points_awarded} {tx.points_awarded === 1 ? 'point' : 'points'}
                 </Text>
-                
-                {/* {transaction.status && ( */}
-                  {/* <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.statusText, { color: '#4CAF50' }]}>
-                      {tx.business.name}
-                    </Text>
-                  </View> */}
-                {/* )} */}
-                
-                <Text style={styles.dateText}>{dateStr}</Text>
-                <Text style={styles.timeText}>{timeStr}</Text>
+                <Text style={styles.dateText}>{formatDateTZ(tx.created_at)}</Text>
+                <Text style={styles.timeText}>{formatTimeTZ(tx.created_at)}</Text>
               </View>
             </View>
           );

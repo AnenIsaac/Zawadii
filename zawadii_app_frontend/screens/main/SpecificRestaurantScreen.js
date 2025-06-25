@@ -777,7 +777,7 @@ export default function SpecificRestaurantScreen() {
 
             <Text style={styles.rewardTitle1}>{selectedReward?.title}</Text>
             <Text style={styles.pointsText1}>
-              {selectedReward?.points_required} Points
+              {selectedReward?.points_required.toLocaleString()} Points
             </Text>
             <Text style={styles.rewardDescription1}>
               {modalType === "buy"
