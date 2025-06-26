@@ -6,7 +6,7 @@ export async function getValidPromotions(limit = 5) {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const { data, error } = await supabase
     .from('promotions')
-    .select('*')
+    .select('*, business:businesses!inner(name)') // Join businesses and get name
     .lte('start_date', today)
     .gte('end_date', today)
     .order('created_at', { ascending: false }) // Order by most recently created
