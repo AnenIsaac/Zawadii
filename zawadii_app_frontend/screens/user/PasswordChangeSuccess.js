@@ -1,15 +1,18 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import Feather from 'react-native-vector-icons/Feather';
 
 
 const PasswordChangeSuccess = () => {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const handleBackToLogin = () => {
+    setLoading(true);
     // Navigate back to login screen
-    navigation.navigate('Authentication');
+    navigation.navigate("Auth", { screen: "Authentication" });
+    setTimeout(() => setLoading(false), 1000); // <-- Reset loading after navigation (optional safety)
   };
 
   return (
@@ -24,8 +27,13 @@ const PasswordChangeSuccess = () => {
         <TouchableOpacity 
           style={styles.backToLoginButton}
           onPress={handleBackToLogin}
+          disabled={loading}
         >
-          <Text style={styles.backToLoginText}>Continue</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.backToLoginText}>Continue</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

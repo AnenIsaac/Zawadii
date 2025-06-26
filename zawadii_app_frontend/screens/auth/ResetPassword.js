@@ -8,9 +8,12 @@ import {
   SafeAreaView, 
   StatusBar,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../supabaseClient';
+import { Alert } from 'react-native';
 
 const ResetPassword = ({ navigation }) => {
   const [password, setPassword] = useState('');
@@ -18,11 +21,27 @@ const ResetPassword = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const isStrongPassword = (password) => {
+    const minLength = /.{8,}/;
+    const upper = /[A-Z]/;
+    const lower = /[a-z]/;
+    const number = /[0-9]/;
+    const special = /[!@#$%^&*(),.?":{}|<>]/;
+    return (
+      minLength.test(password) &&
+      upper.test(password) &&
+      lower.test(password) &&
+      number.test(password) &&
+      special.test(password)
+    );
+  };
 
   useEffect(() => {
-    // Check if both passwords are entered and they match
+    // Check if both passwords are entered, they match, and password is strong
     const passwordsMatch = password.length > 0 && password === confirmPassword;
-    setIsValid(passwordsMatch);
+    setIsValid(passwordsMatch && isStrongPassword(password));
   }, [password, confirmPassword]);
 
   const togglePasswordVisibility = () => {
@@ -33,18 +52,27 @@ const ResetPassword = ({ navigation }) => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleUpdatePassword = () => {
-  if (isValid) {
-    // Implement your password update logic here
-    console.log('Updating password...');
-    // Navigate to success screen or back to login
-    navigation.navigate('PasswordChangeSuccess'); // Or your actual success screen name
-  } else {
-    // Navigate to failure screen
-    navigation.navigate('PasswordChangeFailed');
-  }
-};
-
+  const handleUpdatePassword = async () => {
+    if (!isValid) return;
+    if (!isStrongPassword(password)) {
+      Alert.alert(
+        'Weak Password',
+        'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.'
+      );
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      navigation.replace('PasswordChangeSuccess');
+    } catch (err) {
+      Alert.alert('Oops', err.message);
+      navigation.replace('PasswordChangeFailure');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const goBack = () => {
     navigation.goBack();
@@ -64,7 +92,8 @@ const ResetPassword = ({ navigation }) => {
         <View style={styles.content}>
           <Text style={styles.title}>Set a new password</Text>
           <Text style={styles.subtitle}>
-            Create a new password. Ensure it differs from previous ones for security
+            {/* Create a new password. Make sure it is different from your previous passwords for security. */}
+            Password must be at least 8 characters and include uppercase, lowercase, number, and special character.
           </Text>
           
           <View style={styles.inputContainer}>
@@ -77,7 +106,7 @@ const ResetPassword = ({ navigation }) => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
+                // autoCapitalize="none"
               />
               <TouchableOpacity 
                 style={styles.eyeIcon} 
@@ -102,7 +131,7 @@ const ResetPassword = ({ navigation }) => {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
+                // autoCapitalize="none"
               />
               <TouchableOpacity 
                 style={styles.eyeIcon} 
@@ -117,11 +146,19 @@ const ResetPassword = ({ navigation }) => {
             </View>
           </View>
           
-          <TouchableOpacity 
-            style={styles.updateButton}
+          <TouchableOpacity
+            disabled={!isValid || loading}
+            style={[
+              styles.updateButton,
+              !isValid && styles.updateButtonDisabled
+            ]}
             onPress={handleUpdatePassword}
           >
-            <Text style={styles.updateButtonText}>Update Password</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.updateButtonText}>Update Password</Text>
+            )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -194,6 +231,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  updateButtonDisabled: {
+    backgroundColor: "#FFCF9E",
   },
 });
 

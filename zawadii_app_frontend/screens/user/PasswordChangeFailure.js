@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import { Feather } from 'react-native-vector-icons'; // Make sure this is imported
 
 const PasswordChangeFailure= () => {
   const navigation = useNavigation();
+  const [loginLoading, setLoginLoading] = useState(false); // <-- Add loading state for back to login
+  const [nextLoading, setNextLoading] = useState(false);   // <-- Add loading state for next button
 
   const handleTryAgain = () => {
     // Navigate back to reset password screen
@@ -12,8 +14,16 @@ const PasswordChangeFailure= () => {
   };
 
   const handleBackToLogin = () => {
+    setLoginLoading(true);
     // Navigate back to login screen
-    navigation.navigate('Login');
+    navigation.navigate('Authentication');
+    setTimeout(() => setLoginLoading(false), 1000); // optional safety
+  };
+
+  const handleNext = () => {
+    setNextLoading(true);
+    navigation.navigate('PasswordChangeSuccess');
+    setTimeout(() => setNextLoading(false), 1000); // optional safety
   };
 
   return (
@@ -38,11 +48,24 @@ const PasswordChangeFailure= () => {
         <TouchableOpacity 
           style={styles.backToLoginButton}
           onPress={handleBackToLogin}
+          disabled={loginLoading}
         >
-          <Text style={styles.backToLoginText}>BACK TO LOGIN</Text>
+          {loginLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.backToLoginText}>BACK TO LOGIN</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.nextButton} onPress={() => navigation.navigate("PasswordChangeSuccess")}>
-          <Text style={styles.nextButtonText}>Back</Text>
+        <TouchableOpacity 
+          style={styles.nextButton} 
+          onPress={handleNext}
+          disabled={nextLoading}
+        >
+          {nextLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.nextButtonText}>Back</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

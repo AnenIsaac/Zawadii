@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Feather from "react-native-vector-icons/Feather";
@@ -54,6 +55,8 @@ const Authentication = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [signupLoading, setSignupLoading] = useState(false);
 
   const isStrongPassword = (password) => {
     const minLength = /.{8,}/;
@@ -99,18 +102,21 @@ const Authentication = () => {
   };
 
   const handleContinue = async () => {
+    setLoginLoading(true);
     const email = loginData.email.trim();
     const password = loginData.password.trim();
 
     // Empty fields check
     if (!email || !password) {
       Alert.alert("Missing Fields", "Please fill in all fields.");
+      setLoginLoading(false);
       return;
     }
 
     // Validate credentials
     if (!isValidEmail(email)) {
       Alert.alert("Invalid Email", "Please enter a valid email address.");
+      setLoginLoading(false);
       return;
     }
 
@@ -119,7 +125,9 @@ const Authentication = () => {
       password,
     });
     if (error) {
-      return Alert.alert("Login Error", error.message);
+      Alert.alert("Login Error", error.message);
+      setLoginLoading(false);
+      return;
     }
 
     // If successful, store user token and navigate to login success screen
@@ -138,12 +146,12 @@ const Authentication = () => {
         );
       }
     } else {
-      // Handle case where session is null despite no error (should be rare)
       Alert.alert(
         "Login Error",
         "Could not establish a session. Please try again."
       );
     }
+    setLoginLoading(false);
   };
 
   const handleForgotPassword = () => {
@@ -176,6 +184,7 @@ const Authentication = () => {
 
   // Signup submission
   const handleNext = async () => {
+    setSignupLoading(true);
     const fullName = signupData.fullName.trim();
     const email = signupData.email.trim();
     const phoneNumber = signupData.phoneNumber.trim();
@@ -193,24 +202,28 @@ const Authentication = () => {
       !confirmPassword
     ) {
       Alert.alert("Missing Fields", "Please fill in all fields.");
+      setSignupLoading(false);
       return;
     }
 
     // Email validation
     if (!isValidEmail(email)) {
       Alert.alert("Invalid Email", "Please enter a valid email address.");
+      setSignupLoading(false);
       return;
     }
 
     // Phone number validation
     if (!isValidPhoneNumber(phoneNumber)) {
       Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
+      setSignupLoading(false);
       return;
     }
 
     // Gender validation
     if (gender !== "Male" && gender !== "Female") {
       Alert.alert("Invalid Gender", "Please select a valid gender.");
+      setSignupLoading(false);
       return;
     }
 
@@ -220,12 +233,14 @@ const Authentication = () => {
         "Weak Password",
         "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
       );
+      setSignupLoading(false);
       return;
     }
 
     // Password match check
     if (password !== confirmPassword) {
       Alert.alert("Password Mismatch", "Passwords do not match.");
+      setSignupLoading(false);
       return;
     }
 
@@ -235,6 +250,7 @@ const Authentication = () => {
         "Terms Required",
         "You must agree to the terms and conditions."
       );
+      setSignupLoading(false);
       return;
     }
 
@@ -249,7 +265,9 @@ const Authentication = () => {
       },
     });
     if (error) {
-      return Alert.alert("Signup Error", error.message);
+      Alert.alert("Signup Error", error.message);
+      setSignupLoading(false);
+      return;
     }
 
     // If all checks pass
@@ -267,6 +285,8 @@ const Authentication = () => {
       confirmPassword: "",
     });
     setTermsAccepted(false);
+
+    setSignupLoading(false);
 
     navigation.navigate("EnterSignupCode", {
       email,
@@ -393,8 +413,13 @@ const Authentication = () => {
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={handleContinue}
+                disabled={loginLoading}
               >
-                <Text style={styles.primaryButtonText}>Continue</Text>
+                {loginLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Continue</Text>
+                )}
               </TouchableOpacity>
 
               {/* No Account Prompt */}
@@ -593,10 +618,16 @@ const Authentication = () => {
                   !isFormValid && styles.disabledButton,
                 ]}
                 onPress={handleNext}
-                disabled={!isFormValid}
+                disabled={!isFormValid || signupLoading}
               >
-                <Text style={styles.primaryButtonText}>Next</Text>
-                <Text style={styles.nextButtonIcon}>›</Text>
+                {signupLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryButtonText}>Next</Text>
+                    <Text style={styles.nextButtonIcon}>›</Text>
+                  </>
+                )}
               </TouchableOpacity>
 
               {/* Already Have Account Prompt */}

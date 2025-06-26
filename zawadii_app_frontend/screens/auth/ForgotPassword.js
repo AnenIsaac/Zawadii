@@ -8,13 +8,17 @@ import {
   SafeAreaView, 
   StatusBar,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../supabaseClient';
 
 const ForgotPassword = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [isValidEmail, setIsValidEmail] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const validateEmail = (text) => {
     // Basic email validation
@@ -27,11 +31,22 @@ const ForgotPassword = ({ navigation }) => {
     setIsValidEmail(validateEmail(text));
   };
 
-  const handleResetPassword = () => {
-    if (isValidEmail) {
-      // Implement your password reset logic here
-      navigation.navigate('EnterCode');
-      // Navigate to confirmation screen or show success message
+  const handleResetPassword = async () => {
+    if (!isValidEmail) return;
+    setLoading(true);
+
+    try {
+      // Supabase OTP email
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        // on success, navigate to EnterCode
+        navigation.navigate('EnterCode', { email });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,9 +89,13 @@ const ForgotPassword = ({ navigation }) => {
               isValidEmail ? styles.resetButtonActive : styles.resetButtonInactive
             ]}
             onPress={handleResetPassword}
-            disabled={!isValidEmail}
+            disabled={!isValidEmail || loading}
           >
-            <Text style={styles.resetButtonText}>Reset Password</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.resetButtonText}>Reset Password</Text>
+            )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>

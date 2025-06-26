@@ -132,7 +132,8 @@ export default function SpecificRestaurantScreen() {
       const { data: promos, error: promoErr } = await supabase
         .from("promotions")
         .select("*")
-        .eq("business_id", BUSINESS_ID);
+        .eq("business_id", BUSINESS_ID)
+        .eq("status", "active");
 
       if (promoErr) {
         console.error("Error loading promotions:", promoErr);
@@ -549,8 +550,8 @@ export default function SpecificRestaurantScreen() {
             <View style={styles.statItem}>
               <Ionicons name="pricetag-outline" size={20} color="white" />
               <Text style={styles.statText}>
-                {promotions.filter((p) => p.status === "ACTIVE").length}{" "}
-                {promotions.filter((p) => p.status === "ACTIVE").length === 1
+                {promotions.filter((p) => p.status === "active").length}{" "}
+                {promotions.filter((p) => p.status === "active").length === 1
                   ? "deal"
                   : "deals"}
               </Text>

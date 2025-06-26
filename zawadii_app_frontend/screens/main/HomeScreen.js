@@ -103,7 +103,7 @@ const HomeScreen = ({ navigation }) => {
               .from('promotions')
               .select('id', { head: true, count: 'exact' })
               .eq('business_id', biz.id)
-              .eq('status', 'ACTIVE');
+              .eq('status', 'active');
 
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
@@ -217,7 +217,7 @@ const HomeScreen = ({ navigation }) => {
               .from('promotions')
               .select('id', { head: true, count: 'exact' })
               .eq('business_id', biz.id)
-              .eq('status', 'ACTIVE');
+              .eq('status', 'active');
 
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0

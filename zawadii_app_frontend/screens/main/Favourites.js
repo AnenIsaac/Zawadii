@@ -76,7 +76,7 @@ export default function Favourites({ navigation }) {
               .from("promotions")
               .select("id", { head: true, count: "exact" })
               .eq("business_id", biz.id)
-              .eq('status', 'ACTIVE');;
+              .eq('status', 'active');;
 
             // 3) find this user’s points
             const points =

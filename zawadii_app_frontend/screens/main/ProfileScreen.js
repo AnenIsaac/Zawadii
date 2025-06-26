@@ -132,22 +132,38 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        Alert.alert('Logout Error', error.message);
-        return;
-      }
-      await AsyncStorage.removeItem('userToken');
-      // Navigate to Auth stack after logout
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }], 
-      });
-    } catch (e) {
-      console.error("Failed to clear user token or sign out", e);
-      Alert.alert('Logout Error', 'An error occurred during logout. Please try again.');
-    }
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Log Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase.auth.signOut();
+              if (error) {
+                Alert.alert('Logout Error', error.message);
+                return;
+              }
+              await AsyncStorage.removeItem('userToken');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Auth' }],
+              });
+            } catch (e) {
+              console.error("Failed to clear user token or sign out", e);
+              Alert.alert('Logout Error', 'An error occurred during logout. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   // Handle text input submission
