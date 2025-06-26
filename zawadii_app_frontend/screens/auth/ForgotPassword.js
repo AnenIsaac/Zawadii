@@ -59,11 +59,11 @@ const ForgotPassword = ({ navigation }) => {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
         
-        <View style={styles.header}>
+        {/* <View style={styles.header}>
           <TouchableOpacity onPress={goBack} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
-        </View>
+        </View> */}
         
         <View style={styles.content}>
           <Text style={styles.title}>Forgot password</Text>
@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    paddingTop: '15%',
     marginBottom: 8,
   },
   subtitle: {

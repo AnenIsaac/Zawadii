@@ -60,7 +60,7 @@ export default function App() {
           }} 
         />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-        <Stack.Screen name="EnterCode" component={EnterCode} />
+        <Stack.Screen name="EnterCode" component={EnterCode} options={{ headerShown: true, title: '', headerTransparent: true }}/>
         <Stack.Screen name="InfoScreen" component={InfoScreen} />
         
         {/* Add ValidTRAReceiptScreen as a screen in this top-level AppStack */}

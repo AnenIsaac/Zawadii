@@ -16,8 +16,8 @@ const AuthStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Authentication" component={Authentication} />
       <Stack.Screen name="LoginSuccess" component={LoginSuccessScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-      <Stack.Screen name="ResetPassword" component={ResetPassword} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ headerShown: true, title: '', headerTransparent: true }}/>
+      <Stack.Screen name="ResetPassword" component={ResetPassword} options={{ headerShown: true, title: '', headerTransparent: true }}/>
       <Stack.Screen name="EnterSignupCode" component={EnterSignupCode} />
       <Stack.Screen name="SignupSuccess" component={SignupSuccess} />
     </Stack.Navigator>

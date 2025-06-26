@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -15,11 +15,21 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../supabaseClient";
 import { useNavigation } from "@react-navigation/native";
 import { useRoute } from "@react-navigation/native";
+
+// Helper: given a sorted array of thresholds and current points,
+// pick the “previous” and “next” milestone.
+function getProgressBounds(thresholds, current) {
+  thresholds.sort((a, b) => a - b);
+  const next = thresholds.find((t) => t > current) ?? thresholds[thresholds.length - 1] ?? current;
+  const prev = thresholds.filter((t) => t <= current).pop() ?? 0;
+  return { prev, next };
+}
 
 export default function SpecificRestaurantScreen() {
   const route = useRoute();
@@ -54,6 +64,8 @@ export default function SpecificRestaurantScreen() {
   const [favourites, setFavourites] = useState([]);
 
   const navigation = useNavigation();
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const loadAll = async () => {
     try {
@@ -148,9 +160,32 @@ export default function SpecificRestaurantScreen() {
     }
   };
 
+  // extract only the points_required values
+  const thresholds = rewardsData.map((r) => r.points_required);
+  // figure out our bounds
+  const { prev, next } = getProgressBounds(thresholds, customerPoints);
+  // percentage fill between prev→next
+  const progressPercent =
+    next > prev
+      ? Math.max(0, Math.min((customerPoints - prev) / (next - prev), 1)) * 100
+      : 100;
+
+
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    // reset back to zero
+    progressAnim.setValue(0);
+    
+    Animated.timing(progressAnim, {
+      toValue: progressPercent,
+      duration: 800,
+      useNativeDriver: false,      // width animation requires false
+    }).start();
+  }, [progressPercent]);
+
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -589,23 +624,45 @@ export default function SpecificRestaurantScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* <Text style={styles.pointsTillRewardText}>
-                {restaurant?.pointsTillReward || 'some'} points till your next rewards
-              </Text> */}
 
-              <Text style={styles.pointsTillRewardText}>
-                Use your points to buy rewards
-              </Text>
+              {rewardsData.length > 0 ? (
+                <>
 
-              {/* Progress Bar */}
-              {/* <View style={styles.progressBarBackground}>
-                <View 
-                  style={[
-                    styles.progressBar, 
-                    {width: `${(restaurant.points / (restaurant.points + restaurant.pointsTillReward)) * 100}%`}
-                  ]} 
-                />
-              </View> */}
+                {next > customerPoints ? (
+                  <Text style={styles.pointsTillRewardText}>
+                    <Text style={{ fontWeight: 'bold' }}>
+                      {(next - customerPoints).toLocaleString()} points
+                    </Text>{' '}
+                    till your next reward
+                  </Text>
+                ) : (
+                  <Text style={styles.pointsTillRewardText}>
+                    You've reached the highest reward tier 🎉
+                  </Text>
+                )}
+
+                {/* Progress bar */}
+                <View style={styles.progressBarBackground}>
+                  <Animated.View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+                </>
+              ) : (
+                // Fallback when there are no rewards at all
+                <Text style={styles.pointsTillRewardText}>
+                  No rewards available yet.
+                </Text>
+              )}
+
             </View>
           </View>
         </View>
@@ -1095,7 +1152,8 @@ const styles = StyleSheet.create({
   pointsCard: {
     backgroundColor: "white",
     borderRadius: 15,
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1128,7 +1186,7 @@ const styles = StyleSheet.create({
   pointsTillRewardText: {
     fontSize: 12,
     color: "#666",
-    marginTop: 8,
+    marginTop: 5,
   },
   progressBarBackground: {
     height: 8,
@@ -1480,5 +1538,16 @@ const styles = StyleSheet.create({
   },
   notFavourited: {
     backgroundColor: "white",
+  },
+  progressBarBackground: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#FF8C00',  // same orange as your theme
   },
 });
