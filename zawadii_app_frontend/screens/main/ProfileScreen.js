@@ -69,7 +69,12 @@ const ProfileScreen = ({ navigation }) => {
         });
       } catch (err) {
         console.error('Error loading user profile:', err.message);
-        Alert.alert('Error', 'Could not load your profile. Please try again.');
+        Alert.alert('Error', 'Could not load your profile. Please try again.', [
+          { text: 'OK', onPress: () => navigation.reset({
+              index: 0,
+              routes: [{ name: 'Auth' }],
+          }) }
+        ]);
       } finally {
         setLoading(false);
       }

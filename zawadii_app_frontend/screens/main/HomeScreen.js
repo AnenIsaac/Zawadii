@@ -503,13 +503,26 @@ const HomeScreen = ({ navigation }) => {
               />
             )}
 
-            {/* Show business name if available */}
-            {selectedDeal?.business?.name && (
-              <Text style={[styles.dealTitleModal, { fontSize: 16, color: '#FF8924', marginTop: 5 }]}>From {selectedDeal.business.name}</Text>
-            )}
-
             <Text style={styles.dealTitleModal}>{selectedDeal?.title}</Text>
             <Text style={styles.dealDescription}>{selectedDeal?.description}</Text>
+
+            {/* Show business name if available */}
+            {selectedDeal?.business?.name && (
+              <View>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDealsModalVisible(false);
+                    if (selectedDeal?.business_id) {
+                      navigation.navigate('SpecificRestaurantScreen', { businessId: selectedDeal.business_id });
+                    }
+                  }}
+                >
+                  <Text style={[styles.dealTitleModal, { fontSize: 16, color: '#FF8924', textDecorationLine: 'underline' }]}>
+                    {selectedDeal.business.name}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {(selectedDeal?.start_date || selectedDeal?.end_date) && (
               <View style={styles.dealDatesContainer}>
@@ -527,6 +540,8 @@ const HomeScreen = ({ navigation }) => {
                 )}
               </View>
             )}
+
+
           </View>
         </View>
       </Modal>
