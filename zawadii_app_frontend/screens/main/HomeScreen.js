@@ -1082,6 +1082,7 @@ favouriteCard: {
     marginLeft: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 15, // Added to ensure it aligns with the progress bar
   },
   affordableCircle: {
     width: 22,
