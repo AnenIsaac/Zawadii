@@ -90,14 +90,13 @@ const HomeScreen = ({ navigation }) => {
           .eq('customer_id', user.id)
           .in('business_id', businessIds);
         const favsWithCounts = await Promise.all(
-          businesses.map(async biz => {
-            // 1) count rewards
-            const { count: rewardsCount } = await supabase
-              .from('rewards')
-              .select('id', { head: true, count: 'exact' })
-              .eq('business_id', biz.id)
-              .eq('is_active', true);
-
+          businesses.map(async (biz) => {
+            // 1) get all rewards for this business
+            const { data: rewardsList } = await supabase
+              .from("rewards")
+              .select("id, points_required, is_active")
+              .eq("business_id", biz.id);
+            const rewardsCount = rewardsList?.filter(r => r.is_active).length || 0;
             // 2) count promotions
             const { count: dealsCount } = await supabase
               .from('promotions')
@@ -108,13 +107,27 @@ const HomeScreen = ({ navigation }) => {
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
 
+            // 4) affordable rewards count
+            const affordableCount = rewardsList?.filter(r => r.is_active && points >= r.points_required).length || 0;
+
+            // 5) progress bar logic
+            const thresholds = rewardsList?.filter(r => r.is_active).map(r => r.points_required).sort((a, b) => a - b) || [];
+            let progressMax = thresholds[0] || 1;
+            if (points >= progressMax && thresholds.length > 1) {
+              const nextThreshold = thresholds.find(t => t > thresholds[0]);
+              progressMax = nextThreshold || thresholds[thresholds.length - 1];
+            }
+            const progressPercent = Math.min(points / progressMax, 1) * 100;
+
             return {
               id: biz.id,
               name: biz.name,
-              image: biz.cover_image_url,
+              image: biz.cover_image_url || require("../../assets/fav1.jpg"),
               points,
               rewardsCount,
               dealsCount,
+              affordableCount,
+              progressPercent,
             }
           })
         )
@@ -222,6 +235,17 @@ const HomeScreen = ({ navigation }) => {
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
 
+            // 4) calculate progress towards next reward (assuming 100 points per reward for progress bar)
+            const progressPercent = Math.min((points % 100) / 100 * 100, 100);
+
+            // 5) find affordable rewards count
+            const { count: affordableCount } = await supabase
+              .from('rewards')
+              .select('id', { head: true, count: 'exact' })
+              .eq('business_id', biz.id)
+              .lte('points_required', points)
+              .eq('is_active', true);
+
             return {
               id: biz.id,
               name: biz.name,
@@ -229,6 +253,8 @@ const HomeScreen = ({ navigation }) => {
               points,
               rewardsCount,
               dealsCount,
+              progressPercent,
+              affordableCount,
             }
           }))
           setFavouriteBusinesses(favsWithCounts)
@@ -407,6 +433,24 @@ const HomeScreen = ({ navigation }) => {
                       <Text style={styles.favouriteName}>{biz.name}</Text>
                     </View>
                     <Text style={styles.favouritePoints}>{biz.points.toLocaleString()} pts</Text>
+                    {/* Progress bar and affordable rewards circle */}
+                    {biz.rewardsCount > 0 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                        <View style={[styles.progressBarBackground, { flex: 1 }]}> 
+                          <View
+                            style={[
+                              styles.progressBar,
+                              { width: `${biz.progressPercent}%` },
+                            ]}
+                          />
+                        </View>
+                        <View style={styles.affordableCircleContainer}>
+                          <View style={styles.affordableCircle}>
+                            <Text style={styles.affordableCircleText}>{biz.affordableCount}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
                     <Text style={styles.favouritePointsToNext}>Use your points to buy rewards</Text>
                     {/* <View style={styles.progressBarContainer}>
                       <View style={styles.progressBarBackground}>
@@ -745,7 +789,7 @@ favouriteCard: {
   },
   progressBarBackground: {
     height: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 3,
     marginBottom: 15,
     width: '80%', // Control the width of the background
@@ -1033,6 +1077,30 @@ favouriteCard: {
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
+  },
+  affordableCircleContainer: {
+    marginLeft: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  affordableCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FF8C00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center', // ensure vertical centering
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  affordableCircleText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });
 
