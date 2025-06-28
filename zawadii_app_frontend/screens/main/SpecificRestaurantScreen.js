@@ -31,6 +31,11 @@ function getProgressBounds(thresholds, current) {
   return { prev, next };
 }
 
+// Helper: get the reward thresholds sorted
+function getSortedThresholds(rewards) {
+  return rewards.map(r => r.points_required).sort((a, b) => a - b);
+}
+
 export default function SpecificRestaurantScreen() {
   const route = useRoute();
   const { businessId } = route.params;
@@ -170,22 +175,32 @@ export default function SpecificRestaurantScreen() {
       ? Math.max(0, Math.min((customerPoints - prev) / (next - prev), 1)) * 100
       : 100;
 
+  // New progress logic
+  const sortedThresholds = getSortedThresholds(rewardsData);
+  let progressMin = 0;
+  let progressMax = sortedThresholds[0] || 1; // Default to 1 to avoid division by zero
+
+  if (customerPoints >= progressMax && sortedThresholds.length > 1) {
+    // Find the next threshold above the first
+    const nextThreshold = sortedThresholds.find(t => t > sortedThresholds[0]);
+    progressMax = nextThreshold || sortedThresholds[sortedThresholds.length - 1];
+  }
+
+  // Clamp progress to [0, progressMax]
+  const clampedProgressPercent = Math.min(customerPoints / progressMax, 1) * 100;
 
   useEffect(() => {
     loadAll();
   }, []);
 
   useEffect(() => {
-    // reset back to zero
     progressAnim.setValue(0);
-    
     Animated.timing(progressAnim, {
-      toValue: progressPercent,
+      toValue: clampedProgressPercent,
       duration: 800,
-      useNativeDriver: false,      // width animation requires false
+      useNativeDriver: false,
     }).start();
-  }, [progressPercent]);
-
+  }, [clampedProgressPercent]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -494,6 +509,9 @@ export default function SpecificRestaurantScreen() {
     }
   };
 
+  // Calculate affordable rewards count
+  const affordableCount = rewardsData.filter(r => r.is_active && customerPoints >= r.points_required).length;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -624,7 +642,6 @@ export default function SpecificRestaurantScreen() {
                 </TouchableOpacity>
               </View>
 
-
               {rewardsData.length > 0 ? (
                 <>
 
@@ -642,18 +659,28 @@ export default function SpecificRestaurantScreen() {
                 )}
 
                 {/* Progress bar */}
-                <View style={styles.progressBarBackground}>
-                  <Animated.View
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        width: progressAnim.interpolate({
-                          inputRange: [0, 100],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
-                    ]}
-                  />
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                  <View style={[styles.progressBarBackground, { flex: 1 }]}> 
+                    <Animated.View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: progressAnim.interpolate({
+                            inputRange: [0, 100],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    />
+                  </View>
+                  {/* Affordable rewards circle */}
+                  {rewardsData.length > 0 && (
+                    <View style={styles.affordableCircleContainer}>
+                      <View style={styles.affordableCircle}>
+                        <Text style={styles.affordableCircleText}>{affordableCount}</Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
                 </>
               ) : (
@@ -1189,19 +1216,42 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   progressBarBackground: {
-    height: 8,
-    backgroundColor: "#EDEDED",
-    borderRadius: 4,
-    marginTop: 8,
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    // marginTop: 8, // moved to parent
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#FF8C00",
-    borderRadius: 4,
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#FF8C00',  // same orange as your theme
+  },
+  affordableCircleContainer: {
+    marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  affordableCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FF8C00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  affordableCircleText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   tabsContainer: {
     flexDirection: "row",
-    marginTop: 20,
+    marginTop: 40,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#EDEDED",
@@ -1544,10 +1594,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 8,
+    // marginTop: 8, // moved to parent
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#FF8C00',  // same orange as your theme
+  },
+  affordableCircleContainer: {
+    marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  affordableCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FF8C00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF8C00',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  affordableCircleText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
