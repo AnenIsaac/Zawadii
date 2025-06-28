@@ -321,6 +321,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 15,
   },
   affordableCircle: {
     width: 22,
