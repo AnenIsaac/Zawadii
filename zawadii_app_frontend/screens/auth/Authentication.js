@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import Feather from "react-native-vector-icons/Feather";
+import { Feather } from '@expo/vector-icons';
 import { ToastAndroid } from "react-native";
 import { Alert } from "react-native";
 import { supabase } from "../../supabaseClient";
@@ -357,6 +357,7 @@ const Authentication = () => {
                   <TextInput
                     style={styles.input}
                     placeholder="contact@discodetech.com"
+                    placeholderTextColor="#888"
                     keyboardType="email-address"
                     value={loginData.email}
                     onChangeText={(text) => handleLoginChange("email", text)}
@@ -377,6 +378,7 @@ const Authentication = () => {
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your password"
+                    placeholderTextColor="#888"
                     secureTextEntry={!showLoginPassword}
                     value={loginData.password}
                     onChangeText={(text) => handleLoginChange("password", text)}
@@ -448,6 +450,7 @@ const Authentication = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="Full name"
+                  placeholderTextColor="#888"
                   value={signupData.fullName}
                   onChangeText={(text) => handleSignupChange("fullName", text)}
                 />
@@ -461,6 +464,7 @@ const Authentication = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
+                  placeholderTextColor="#888"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={signupData.email}
@@ -484,6 +488,7 @@ const Authentication = () => {
                 <TextInput
                   style={styles.phoneInput}
                   placeholder="Enter phone number"
+                  placeholderTextColor="#888"
                   keyboardType="number-pad"
                   value={signupData.phoneNumber}
                   onChangeText={(text) =>
@@ -541,6 +546,7 @@ const Authentication = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
+                  placeholderTextColor="#888"
                   secureTextEntry={!showSignupPassword}
                   value={signupData.password}
                   onChangeText={(text) => handleSignupChange("password", text)}
@@ -839,8 +845,11 @@ const styles = StyleSheet.create({
   genderOptions: {
     flexDirection: "row",
     gap: 15,
+    justifyContent: "center",
+    flexWrap: "wrap", 
   },
   genderButton: {
+    minWidth: 70,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderWidth: 1,
@@ -930,6 +939,7 @@ const styles = StyleSheet.create({
   },
   prefixContainer: {
     marginRight: 6,
+    minWidth: 40,
     // No extra padding or margin here, so it aligns with the input border
   },
   prefixText: {
