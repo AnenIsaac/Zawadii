@@ -216,14 +216,14 @@ const HomeScreen = ({ navigation }) => {
             .select('business_id, points')
             .eq('customer_id', user.id)
             .in('business_id', businessIds);
-
+            
           const favsWithCounts = await Promise.all(businesses.map(async biz => {
-            // 1) count rewards
-            const { count: rewardsCount } = await supabase
-              .from('rewards')
-              .select('id', { head: true, count: 'exact' })
-              .eq('business_id', biz.id)
-              .eq('is_active', true);
+            // 1) get all rewards for this business
+            const { data: rewardsList } = await supabase
+              .from("rewards")
+              .select("id, points_required, is_active")
+              .eq("business_id", biz.id);
+            const rewardsCount = rewardsList?.filter(r => r.is_active).length || 0;
 
             // 2) count promotions
             const { count: dealsCount } = await supabase
@@ -234,17 +234,18 @@ const HomeScreen = ({ navigation }) => {
 
             // 3) find this user’s points
             const points = pointsRows.find(p => p.business_id === biz.id)?.points || 0
+            
+            // 4) affordable rewards count
+            const affordableCount = rewardsList?.filter(r => r.is_active && points >= r.points_required).length || 0;
 
-            // 4) calculate progress towards next reward (assuming 100 points per reward for progress bar)
-            const progressPercent = Math.min((points % 100) / 100 * 100, 100);
-
-            // 5) find affordable rewards count
-            const { count: affordableCount } = await supabase
-              .from('rewards')
-              .select('id', { head: true, count: 'exact' })
-              .eq('business_id', biz.id)
-              .lte('points_required', points)
-              .eq('is_active', true);
+            // 5) progress bar logic
+            const thresholds = rewardsList?.filter(r => r.is_active).map(r => r.points_required).sort((a, b) => a - b) || [];
+            let progressMax = thresholds[0] || 1;
+            if (points >= progressMax && thresholds.length > 1) {
+              const nextThreshold = thresholds.find(t => t > thresholds[0]);
+              progressMax = nextThreshold || thresholds[thresholds.length - 1];
+            }
+            const progressPercent = Math.min(points / progressMax, 1) * 100;
 
             return {
               id: biz.id,
@@ -745,6 +746,7 @@ favouriteCard: {
   },
   favouriteContent: {
     padding: 15, // Padding inside the card
+    // paddingVertical: 20,
     backgroundColor: 'rgba(0,0,0,0.4)', // Semi-transparent overlay for text readability
     height: '100%',
     // alignItems: 'center',
@@ -754,7 +756,8 @@ favouriteCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 10,
+    marginTop: 10,
   },
   favouriteName: {
     color: 'white',
@@ -803,7 +806,8 @@ favouriteCard: {
     flexDirection: 'row',
     justifyContent: 'space-between', // Distributes space between items
     alignItems: 'center',
-    marginTop: 10, // Adds some space above the footer
+    // marginTop: 10,
+    marginBottom: 10,
   },
   favouriteFooterItem: {
     flexDirection: 'row',

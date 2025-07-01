@@ -191,7 +191,7 @@ const SearchScreen = ({ navigation }) => {
         />
 
         {/* Alphabetical index */}
-        <View style={styles.alphaIndexContainer}>
+        {/* <View style={styles.alphaIndexContainer}>
           {ALPHABET.map((letter, index) => (
             <TouchableOpacity
               key={letter}
@@ -208,7 +208,7 @@ const SearchScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </View> */}
       </View>
     </SafeAreaView>
   );

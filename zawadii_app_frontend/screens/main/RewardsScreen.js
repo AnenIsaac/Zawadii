@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { supabase } from "../../supabaseClient";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function RewardsScreen() {
   const [authUser, setAuthUser] = useState(null);
@@ -28,7 +29,7 @@ export default function RewardsScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
 
-  const toTZDate = (isoString, offsetHours=3) => {
+  const toTZDate = (isoString, offsetHours = 3) => {
     // Parse the UTC timestamp...
     const dt = new Date(isoString);
     // ...then shift it by offsetHours
@@ -88,6 +89,12 @@ export default function RewardsScreen() {
   useEffect(() => {
     loadRewards();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadRewards();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -203,10 +210,14 @@ export default function RewardsScreen() {
               <View style={styles.cardMeta}>
                 <Text style={styles.cardBusiness}>{cr.business.name}</Text>
                 {cr.status === "bought" && (
-                  <Text style={styles.cardSubtitle}>Bought at {formatTimeTZ(cr.claimed_at)}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Bought at {formatTimeTZ(cr.claimed_at)}
+                  </Text>
                 )}
                 {cr.status === "redeemed" && (
-                  <Text style={styles.cardSubtitle}>Redeemed at {formatTimeTZ(cr.redeemed_at)}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Redeemed at {formatTimeTZ(cr.redeemed_at)}
+                  </Text>
                 )}
               </View>
             </View>
