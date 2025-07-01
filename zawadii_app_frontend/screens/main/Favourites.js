@@ -92,7 +92,7 @@ export default function Favourites({ navigation }) {
             return {
               id: biz.id,
               name: biz.name,
-              image: biz.cover_image_url || require("../../assets/fav1.jpg"),
+              image: biz.cover_image_url, // Only assign string or null
               points,
               rewardsCount,
               dealsCount,
