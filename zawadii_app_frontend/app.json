@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "ZawadiiFinal",
+    "name": "Zawadii",
     "slug": "ZawadiiFinal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.demidragon.Zawadii"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,6 +30,21 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8d6de10d-9402-4cc5-a46f-bda6600937dd"
+      }
+    },
+    "owner": "demidragon"
+  },
+  "eas": {
+    "build": {
+      "production": {
+        "android": {
+          "buildType": "apk"
+        }
+      }
+    }
   }
 }
