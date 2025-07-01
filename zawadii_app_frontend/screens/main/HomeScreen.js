@@ -122,7 +122,7 @@ const HomeScreen = ({ navigation }) => {
             return {
               id: biz.id,
               name: biz.name,
-              image: biz.cover_image_url || require("../../assets/fav1.jpg"),
+              image: biz.cover_image_url, // FIX: Don't use require() here. Fallback is handled in the render method.
               points,
               rewardsCount,
               dealsCount,
@@ -249,7 +249,7 @@ const HomeScreen = ({ navigation }) => {
             return {
               id: biz.id,
               name: biz.name,
-              image: biz.cover_image_url,
+              image: biz.cover_image_url, // Use URL, fallback is handled in render
               points,
               rewardsCount,
               dealsCount,
