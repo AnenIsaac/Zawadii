@@ -25,6 +25,7 @@ import NotificationsScreen from './screens/main/NotificationsScreen';
 import EnterCode from './screens/main/EnterCode';
 import InfoScreen from './screens/main/InfoScreen';
 import ValidTRAReceiptScreen from './screens/ValidTRAReceipt'; // Import the screen
+import ReceiptDetailScreen from './screens/user/ReceiptDetailScreen'; // Import ReceiptDetailScreen
 
 // import PointsEarnedScreen from './screens/user/PointsEarnedScreen'; // Assuming PointsEarnedScreen is user-specific
 
@@ -78,6 +79,7 @@ export default function App() {
         
         <Stack.Screen name="Favourites" component={Favourites} options={{ headerShown: true, title: 'My Favourites', headerTransparent: '' }} />
         <Stack.Screen name="SpecificRestaurantScreen" component={SpecificRestaurantScreen} options={{ headerShown: true, headerTransparent: true, headerTitle: '', headerTintColor: '#fff' }} />
+        <Stack.Screen name="ReceiptDetailScreen" component={ReceiptDetailScreen} options={{ headerShown: true, title: 'Receipt Details' }} />
 
         {/* <Stack.Screen name="PointsEarnedScreen" component={PointsEarnedScreen} /> */}
 

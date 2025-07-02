@@ -190,6 +190,7 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         points: pointsToAward,
         verification_code: receiptData.verification?.code,
         source_url: scannedUrl,
+        json: receiptData,
       };
       const { data: dbReceipt, error: receiptError } = await supabase
         .from('receipts')
@@ -238,18 +239,15 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         Alert.alert('Points Error', 'There was a problem updating your points. Please try again.');
       }
 
-      Alert.alert('Success!', `Receipt saved and ${pointsToAward} points awarded from ${businessName}.`);
+      Alert.alert('Success!', `Receipt saved and ${pointsToAward} points awarded from ${businessName}.`, [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('Main', { screen: 'HomeScreen' })
+        }
+      ]);
       // navigation.popToTop(); // Or navigate to a specific success/home screen
 
-      // Navigate to HomeScreen within MainTabs navigator
-      // navigation.navigate('Main', {
-      //   screen: 'HomeScreen',
-      //   params: { refresh: true },
-      // });
-
-    // Navigate to SpecificRestaurantScreen and pass the businessId
-    navigation.navigate('SpecificRestaurantScreen', { businessId });
-
+      // Remove: navigation.navigate('SpecificRestaurantScreen', { businessId });
     } catch (error) {
       console.error('Error saving receipt and awarding points:', error);
       // Check for Supabase unique constraint violation (code 23505)

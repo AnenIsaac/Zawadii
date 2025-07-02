@@ -176,7 +176,12 @@ const ReceiptHistoryScreen = ({ navigation }) => {
     return (
       <TouchableOpacity 
         style={styles.receiptItem}
-        onPress={() => Alert.alert(item.business_name, `Amount: ${item.total_incl_tax.toLocaleString()}` + (item.points ? `\nPoints: ${item.points}` : '') + `\nDate: ${formatDateTZ(item.created_at)} ${formatTimeTZ(item.created_at)}`)}
+        onPress={() => navigation.navigate('ReceiptDetailScreen', {
+          json: item.json,
+          points: item.points,
+          business_name: item.business_name,
+          created_at: item.created_at
+        })}
       >
         <View style={styles.receiptInfo}>
           <Text style={styles.businessName}>{item.business_name}</Text>
