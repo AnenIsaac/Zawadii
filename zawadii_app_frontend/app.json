@@ -16,12 +16,17 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.demidragon.Zawadii",
       "adaptiveIcon": {
         "foregroundImage": "./assets/finalIcon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.demidragon.Zawadii"
+      "permissions": [
+        "CAMERA",
+        "INTERNET",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -1251,7 +1251,8 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: "row",
-    marginTop: 40,
+    justifyContent: "space-around",
+    marginTop: 50,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#EDEDED",
