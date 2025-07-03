@@ -160,14 +160,35 @@ const ScanScreen = ({ navigation }) => {
       .from('businesses')
       .select('id')
       .eq('tin', tin)
-      .single();
+      .maybeSingle(); // <-- use maybeSingle instead of single
     setIsLoading(false);
+    // If business is not found, navigate to ValidTRAReceipt with businessId: null
     if (!business) {
-      setModalInfo({
-        visible: true,
-        title: 'Business Not Registered',
-        message: 'This business is not registered with us yet. You can save this receipt and try again later.',
-        allowSave: true,
+      if (!receiptData) {
+        setIsLoading(true);
+        try {
+          const apiUrl = `https://scraper.zawadii.app/api/scrape-receipt/?url=${encodeURIComponent(scannedUrl)}`;
+          const response = await fetch(apiUrl);
+          if (response.ok) {
+            receiptData = await response.json();
+          }
+        } catch (e) {}
+        setIsLoading(false);
+      }
+      if (!receiptData || !receiptData.company_info || !receiptData.totals) {
+        setModalInfo({
+          visible: true,
+          title: 'Invalid Receipt',
+          message: 'Invalid receipt data provided.',
+          allowSave: false,
+          scannedUrl: ''
+        });
+        return;
+      }
+      navigation.navigate('ValidTRAReceipt', {
+        receiptData,
+        tin,
+        businessId: null,
         scannedUrl
       });
       return;

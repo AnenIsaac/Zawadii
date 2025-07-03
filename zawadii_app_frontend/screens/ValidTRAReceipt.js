@@ -41,8 +41,8 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         const { data, error } = await supabase
           .from('zawadii_settings')
           .select('money_points_ratio')
-          .limit(1) // Assuming there's one row or we take the first
-          .single(); // Assuming it's a single row of settings
+          .limit(1)
+          .maybeSingle(); // <-- changed from .single() to .maybeSingle()
 
         if (error) {
           console.error('Error fetching Zawadii settings:', error.message);
@@ -72,9 +72,9 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         try {
           const { data: business, error: businessError } = await supabase
             .from('businesses')
-            .select('id, name, points_conversion') // MODIFIED: Added points_conversion
+            .select('id, name, points_conversion')
             .eq('tin', tin)
-            .single();
+            .maybeSingle(); // <-- changed from .single() to .maybeSingle()
 
           if (businessError) {
             console.error('Error fetching business details:', businessError.message);
@@ -149,109 +149,114 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
       Alert.alert("Error", "User not identified. Please log in again.");
       return;
     }
-    if (!businessId) {
-      Alert.alert("Business Not Registered", "This business doesn\'t work with us at the moment or is not fully registered for points.");
-      return;
-    }
-
     setIsLoading(true);
     try {
-      // 1. Insert into customer_business_interactions
-      const interactionDetails = {
-        customer_id: userId,
-        business_id: businessId,
-        interaction_type: 'purchase_receipt_scan',
-        amount_spent: parseAmount(receiptData.totals.total_incl_of_tax),
-        points_awarded: pointsToAward,
-        phone_number: receiptData.customer_info?.mobile !== 'n/a' ? receiptData.customer_info.mobile : null,
-        name: receiptData.customer_info?.name !== 'n/a' ? receiptData.customer_info.name : null,
-        optional_note: `Scanned TRA Receipt: ${receiptData.receipt_info.receipt_no}`,
-      };
-      const { data: interaction, error: interactionError } = await supabase
-        .from('customer_business_interactions')
-        .insert(interactionDetails)
-        .select()
-        .single();
+      let interactionId = null;
+      if (businessId) {
+        // 1. Insert into customer_business_interactions
+        const interactionDetails = {
+          customer_id: userId,
+          business_id: businessId,
+          interaction_type: 'purchase_receipt_scan',
+          amount_spent: parseAmount(receiptData.totals.total_incl_of_tax),
+          points_awarded: pointsToAward,
+          phone_number: receiptData.customer_info?.mobile !== 'n/a' ? receiptData.customer_info.mobile : null,
+          name: receiptData.customer_info?.name !== 'n/a' ? receiptData.customer_info.name : null,
+          optional_note: `Scanned TRA Receipt: ${receiptData.receipt_info.receipt_no}`,
+        };
+        const { data: interaction, error: interactionError } = await supabase
+          .from('customer_business_interactions')
+          .insert(interactionDetails)
+          .select()
+          .maybeSingle();
+        if (interactionError) throw interactionError;
+        interactionId = interaction?.id;
 
-      if (interactionError) throw interactionError;
+        // Insert into receipts (registered business)
+        const receiptDetails = {
+          interaction_id: interactionId,
+          customer_id: userId,
+          receipt_no: receiptData.receipt_info.receipt_no,
+          tin_num: tin,
+          z_number: receiptData.receipt_info.z_number,
+          date: receiptData.receipt_info.date,
+          time: receiptData.receipt_info.time,
+          total_excl_tax: parseAmount(receiptData.totals.total_excl_of_tax),
+          total_tax: parseAmount(receiptData.totals.total_tax),
+          total_incl_tax: parseAmount(receiptData.totals.total_incl_of_tax),
+          points: pointsToAward,
+          verification_code: receiptData.verification?.code,
+          source_url: scannedUrl,
+          json: receiptData,
+        };
+        const { data: dbReceipt, error: receiptError } = await supabase
+          .from('receipts')
+          .insert(receiptDetails)
+          .select()
+          .maybeSingle();
+        if (receiptError) throw receiptError;
 
-      // 2. Insert into receipts
-      const receiptDetails = {
-        interaction_id: interaction.id,
-        customer_id: userId,
-        receipt_no: receiptData.receipt_info.receipt_no,
-        tin_num: tin, 
-        z_number: receiptData.receipt_info.z_number,
-        date: receiptData.receipt_info.date,
-        time: receiptData.receipt_info.time,
-        total_excl_tax: parseAmount(receiptData.totals.total_excl_of_tax),
-        total_tax: parseAmount(receiptData.totals.total_tax),
-        total_incl_tax: parseAmount(receiptData.totals.total_incl_of_tax),
-        points: pointsToAward,
-        verification_code: receiptData.verification?.code,
-        source_url: scannedUrl,
-        json: receiptData,
-      };
-      const { data: dbReceipt, error: receiptError } = await supabase
-        .from('receipts')
-        .insert(receiptDetails)
-        .select()
-        .single();
-
-      if (receiptError) throw receiptError;
-
-      // 3. Update or insert into customer_points
-      try {
-        // Check if customer_points entry exists
-        const { data: existingPoints, error: pointsFetchError } = await supabase
-          .from('customer_points')
-          .select('id, points')
-          .eq('customer_id', userId)
-          .eq('business_id', businessId)
-          .single();
-
-        if (pointsFetchError && pointsFetchError.code !== 'PGRST116') { // PGRST116: No rows found
-          throw pointsFetchError;
-        }
-
-        if (existingPoints) {
-          // Update existing points
-          const newTotal = (existingPoints.points || 0) + pointsToAward;
-          const { error: updateError } = await supabase
+        // 3. Update or insert into customer_points
+        try {
+          const { data: existingPoints, error: pointsFetchError } = await supabase
             .from('customer_points')
-            .update({ points: newTotal, last_updated: new Date().toISOString() })
-            .eq('id', existingPoints.id);
-          if (updateError) throw updateError;
-        } else {
-          // Insert new points row
-          const { error: insertError } = await supabase
-            .from('customer_points')
-            .insert({
-              customer_id: userId,
-              business_id: businessId,
-              points: pointsToAward,
-              last_updated: new Date().toISOString(),
-            });
-          if (insertError) throw insertError;
+            .select('id, points')
+            .eq('customer_id', userId)
+            .eq('business_id', businessId)
+            .maybeSingle();
+          if (pointsFetchError && pointsFetchError.code !== 'PGRST116') {
+            throw pointsFetchError;
+          }
+          if (existingPoints) {
+            const newTotal = (existingPoints.points || 0) + pointsToAward;
+            const { error: updateError } = await supabase
+              .from('customer_points')
+              .update({ points: newTotal, last_updated: new Date().toISOString() })
+              .eq('id', existingPoints.id);
+            if (updateError) throw updateError;
+          } else {
+            const { error: insertError } = await supabase
+              .from('customer_points')
+              .insert({
+                customer_id: userId,
+                business_id: businessId,
+                points: pointsToAward,
+                last_updated: new Date().toISOString(),
+              });
+            if (insertError) throw insertError;
+          }
+        } catch (err) {
+          console.error('Error updating customer points:', err);
+          Alert.alert('Points Error', 'There was a problem updating your points. Please try again.');
         }
-      } catch (err) {
-        console.error('Error updating customer points:', err);
-        Alert.alert('Points Error', 'There was a problem updating your points. Please try again.');
+      } else {
+        // Unregistered business: save to unverified_receipts (fields: customer_id, scanned_url, user_id, receipt_no, source_url)
+        const unverifiedDetails = {
+          customer_id: userId, // customer_id is the customer (from customers table)
+          user_id: userId,     // user_id is the auth user (same as customer for your app)
+          scanned_url: scannedUrl,
+          // receipt_no: receiptData.receipt_info?.receipt_no,
+          // source_url: scannedUrl,
+        };
+        const { error: unverifiedError } = await supabase
+          .from('unverified_receipts')
+          .insert(unverifiedDetails);
+        if (unverifiedError) throw unverifiedError;
       }
-
-      Alert.alert('Success!', `Receipt saved and ${pointsToAward} points awarded from ${businessName}.`, [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Main', { screen: 'HomeScreen' })
-        }
-      ]);
-      // navigation.popToTop(); // Or navigate to a specific success/home screen
-
-      // Remove: navigation.navigate('SpecificRestaurantScreen', { businessId });
+      Alert.alert(
+        'Success!',
+        businessId
+          ? `Receipt saved and ${pointsToAward} points awarded from ${businessName}.`
+          : 'Receipt saved! This business is not registered for points. You can try again later from your history.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Main', { screen: 'HomeScreen' }),
+          },
+        ]
+      );
     } catch (error) {
-      console.error('Error saving receipt and awarding points:', error);
-      // Check for Supabase unique constraint violation (code 23505)
-      // and if the message indicates it's related to the receipt number.
+      console.error('Error saving receipt:', error);
       if (error && error.code === '23505' && error.message && error.message.toLowerCase().includes('receipt_no')) {
         Alert.alert('Receipt Already Scanned', 'It looks like you have already scanned this receipt. It cannot be submitted again.');
       } else {
@@ -387,11 +392,11 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={[styles.button, styles.confirmButton, (isLoading || !businessId) && styles.disabledButton]} 
+            style={[styles.button, styles.confirmButton, isLoading && styles.disabledButton]} 
             onPress={handleConfirmAndSave}
-            disabled={isLoading || !businessId}
+            disabled={isLoading}
           >
-            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Confirm & Save</Text>}
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{businessId ? 'Confirm & Save' : 'Save Receipt'}</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity 

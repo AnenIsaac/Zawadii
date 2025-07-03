@@ -11,6 +11,7 @@ import {
   SectionList,
   SafeAreaView,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
@@ -23,23 +24,26 @@ const SearchScreen = ({ navigation }) => {
   const [activeLetterIndex, setActiveLetterIndex] = useState(0);
   const [allBusinesses, setAllBusinesses] = useState([]);
   const [recentBusinesses, setRecentBusinesses] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const sectionListRef = useRef(null);
   const windowHeight = Dimensions.get('window').height;
 
   // Fetch all businesses from Supabase
+  const fetchBusinesses = async () => {
+    setRefreshing(true);
+    const { data, error } = await supabase
+      .from('businesses')
+      .select('id, name, location_description, logo_url')
+      .order('name', { ascending: true });
+    if (!error && data) {
+      setAllBusinesses(data);
+      setFilteredRestaurants(groupBusinesses(data));
+      setRecentBusinesses(data.slice(0, 4));
+    }
+    setRefreshing(false);
+  };
+
   useEffect(() => {
-    const fetchBusinesses = async () => {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('id, name, location_description, logo_url')
-        .order('name', { ascending: true });
-      if (!error && data) {
-        setAllBusinesses(data);
-        setFilteredRestaurants(groupBusinesses(data));
-        // For demo, set recent to first 4
-        setRecentBusinesses(data.slice(0, 4));
-      }
-    };
     fetchBusinesses();
   }, []);
 
@@ -188,6 +192,9 @@ const SearchScreen = ({ navigation }) => {
           viewabilityConfig={{
             itemVisiblePercentThreshold: 50
           }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={fetchBusinesses} />
+          }
         />
 
         {/* Alphabetical index */}

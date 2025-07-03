@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { supabase } from '../../supabaseClient'; // Adjust path as necessary
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 const ReceiptHistoryScreen = ({ navigation }) => {
   const [receipts, setReceipts] = useState([]);
@@ -13,18 +14,20 @@ const ReceiptHistoryScreen = ({ navigation }) => {
   const [rescanLoading, setRescanLoading] = useState(false);
 
   // --- timezone helpers ---
-  const toTZDate = (isoString, offsetHours = 3) => {
+  // Use the UTC time from the database, but display in local time zone
+  const formatTimeFromUTC = (isoString) => {
+    if (!isoString) return '';
     const dt = new Date(isoString);
-    dt.setHours(dt.getHours() + offsetHours);
-    return dt;
-  };
-  const formatTimeTZ = (isoString) =>
-    toTZDate(isoString, 3).toLocaleTimeString(undefined, {
+    return dt.toLocaleTimeString(undefined, {
       hour: "2-digit",
       minute: "2-digit",
     });
-  const formatDateTZ = (isoString) =>
-    toTZDate(isoString, 3).toLocaleDateString();
+  };
+  const formatDateFromUTC = (isoString) => {
+    if (!isoString) return '';
+    const dt = new Date(isoString);
+    return dt.toLocaleDateString();
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -155,13 +158,15 @@ const ReceiptHistoryScreen = ({ navigation }) => {
 
   const renderReceiptItem = ({ item }) => {
     if (item.isUnverified) {
-      // Unverified receipt card
+      // Unverified receipt card styled like verified, but with orange border and no points
       return (
         <View style={styles.unverifiedReceiptItem}>
           <View style={styles.receiptInfo}>
-            <Text style={styles.unverifiedTitle}>Unverified Receipt</Text>
-            <Text style={styles.unverifiedUrl} numberOfLines={1}>{item.scanned_url}</Text>
-            <Text style={styles.unverifiedDate}>{formatDateTZ(item.created_at)} {formatTimeTZ(item.created_at)}</Text>
+            <Text style={styles.unverifiedTitle}>Unverfied Receipt</Text>
+            {/* Show scanned_url as subtitle, and receipt_no if available */}
+            {item.receipt_no && <Text style={styles.receiptDetail}>Receipt No: {item.receipt_no}</Text>}
+            {/* <Text style={styles.unverifiedUrl} numberOfLines={1}>{item.scanned_url}</Text> */}
+            <Text style={styles.unverifiedDate}>{formatDateFromUTC(item.created_at)} {formatTimeFromUTC(item.created_at)}</Text>
           </View>
           <TouchableOpacity
             style={styles.rescanButton}
@@ -210,11 +215,13 @@ const ReceiptHistoryScreen = ({ navigation }) => {
     );
   }
 
-  if (receipts.length === 0 && !loading) {
+  if ((receipts.length === 0 && unverifiedReceipts.length === 0) && !loading) {
     return (
       <View style={styles.centered}>
         <Text>No receipts found.</Text>
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <TouchableOpacity onPress={onRefresh} style={{marginTop: 16, padding: 10, backgroundColor: '#FFA500', borderRadius: 8}}>
+          <Text style={{color: '#fff', fontWeight: 'bold'}}>Refresh</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -342,6 +349,19 @@ const styles = StyleSheet.create({
     zIndex: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  refreshRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+    backgroundColor: '#f5f5f5',
+  },
+  refreshButton: {
+    padding: 6,
+    borderRadius: 20,
   },
 });
 
