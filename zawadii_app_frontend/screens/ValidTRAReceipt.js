@@ -251,7 +251,13 @@ const ValidTRAReceiptScreen = ({ route, navigation }) => {
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Main', { screen: 'HomeScreen' }),
+            onPress: () => {
+              if (businessId) {
+                navigation.navigate('SpecificRestaurantScreen', { businessId });
+              } else {
+                navigation.navigate('Main', { screen: 'HomeScreen' });
+              }
+            },
           },
         ]
       );
