@@ -28,6 +28,20 @@ const ReceiptHistoryScreen = ({ navigation }) => {
     const dt = new Date(isoString);
     return dt.toLocaleDateString();
   };
+  // Format date and time in local timezone for verified receipts
+  const formatDateTZ = (isoString) => {
+    if (!isoString) return '';
+    const dt = new Date(isoString);
+    return dt.toLocaleDateString();
+  };
+  const formatTimeTZ = (isoString) => {
+    if (!isoString) return '';
+    const dt = new Date(isoString);
+    return dt.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
